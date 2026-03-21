@@ -336,7 +336,7 @@ function renderFields(s, elapsedSec) {
       <div class="teams-row">
         <div class="team-col">
           <div class="team-dot-disp" style="background:${esc(t1?.color||'#888')};color:${esc(t1?.color||'#888')}"></div>
-          <div class="team-name-disp" style="color:${esc(t1?.color||'var(--accent)')}">${esc(t1?.flag||'')} ${esc(t1?.name||'—')}</div>
+          <div class="team-name-disp" style="color:${esc(t1?.color||'var(--accent)')}">${esc(t1?.name||'—')}</div>
           <div class="team-members-disp">${(t1?.members||[]).filter(x=>x).join(' · ')}</div>
         </div>
 
@@ -348,7 +348,7 @@ function renderFields(s, elapsedSec) {
 
         <div class="team-col">
           <div class="team-dot-disp" style="background:${esc(t2?.color||'#888')};color:${esc(t2?.color||'#888')}"></div>
-          <div class="team-name-disp" style="color:${esc(t2?.color||'var(--green)')}">${esc(t2?.flag||'')} ${esc(t2?.name||'—')}</div>
+          <div class="team-name-disp" style="color:${esc(t2?.color||'var(--green)')}">${esc(t2?.name||'—')}</div>
           <div class="team-members-disp">${(t2?.members||[]).filter(x=>x).join(' · ')}</div>
         </div>
       </div>
@@ -376,7 +376,7 @@ function renderStandings(s) {
       <td><span class="pos-c ${pc}">${i+1}</span></td>
       <td><div class="name-c">
         <span class="dot-s" style="background:${esc(t.color)}"></span>
-        <span>${md}${esc(t.flag)} ${esc(t.name)}</span>
+        <span>${md}${esc(t.name)}</span>
       </div></td>
       <td style="color:var(--green)">${st.W}</td>
       <td style="color:var(--muted)">${st.D}</td>

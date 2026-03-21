@@ -704,10 +704,7 @@ label.form-label{display:block;font-size:11px;color:var(--muted);margin-bottom:4
       <label class="form-label">Команда атауы</label>
       <input id="tf-name" class="input" type="text" placeholder="Атауы..." maxlength="30">
     </div>
-    <div class="form-row">
-      <label class="form-label">Жалау (ел эмодзиі)</label>
-      <input id="tf-flag" class="input" type="text" placeholder="🇰🇿" maxlength="4" style="width:80px">
-    </div>
+
     <div class="form-row">
       <label class="form-label">Қатысушы 1</label>
       <input id="tf-m1" class="input" type="text" placeholder="Аты Жөні">
@@ -820,18 +817,18 @@ const TEAM_COLORS = [
 ];
 
 const INIT_TEAMS = [
-  {id:1,  name:'TECHNO MUSCLE',   flag:'🇰🇿', members:['Danyshbaev Dias','Kalyk Amir','Ushkov Timofey'],            color:'#00d4ff'},
-  {id:2,  name:'DoubleAoneZ',     flag:'🇰🇿', members:['Muratkanov Alikhan','Nurpeyis Abylai','Kuanysheva Zhasmin'],color:'#00ff88'},
-  {id:3,  name:'Aqtobe BIL',      flag:'🇰🇿', members:['Akylbek Sardar','Amangos Omaralim','Zhandosuly Zhanserik'],color:'#ff7b00'},
-  {id:4,  name:'Petro BIL',       flag:'🇰🇿', members:['Temirkhan Alken','Orazbay Arsen','Raushan Yernar'],         color:'#ff3b5c'},
-  {id:5,  name:'L33TechForce',    flag:'🇰🇿', members:['Gabduakhit Alibi','Utepova Dinara','Nasipkali Aigerim'],    color:'#ffd700'},
-  {id:6,  name:'MrBig',           flag:'🇰🇿', members:['Sagymbaev Islam','Nurzhanuly O.',''],                       color:'#a855f7'},
-  {id:7,  name:'Команда 7',       flag:'🇰🇿', members:['','',''],                                                   color:'#ec4899'},
-  {id:8,  name:'Команда 8',       flag:'🇰🇿', members:['','',''],                                                   color:'#22d3ee'},
-  {id:9,  name:'Команда 9',       flag:'🇰🇿', members:['','',''],                                                   color:'#84cc16'},
-  {id:10, name:'TKRobotics',      flag:'🇰🇿', members:['Sharipov Nurassyl','Akhmatulin Syrym','Buzykin Alexey'],    color:'#f97316'},
-  {id:11, name:'NOMAD ROBOTICS',  flag:'🇰🇿', members:['Ahmedhozha Alhan','Konysbek Abdulla','Kaldybai Erzat'],     color:'#06b6d4'},
-  {id:12, name:'Команда 12',      flag:'🇰🇿', members:['','',''],                                                   color:'#e879f9'},
+  {id:1,  name:'TECHNO MUSCLE',   members:['Danyshbaev Dias','Kalyk Amir','Ushkov Timofey'],            color:'#00d4ff'},
+  {id:2,  name:'DoubleAoneZ',     members:['Muratkanov Alikhan','Nurpeyis Abylai','Kuanysheva Zhasmin'],color:'#00ff88'},
+  {id:3,  name:'Aqtobe BIL',      members:['Akylbek Sardar','Amangos Omaralim','Zhandosuly Zhanserik'],color:'#ff7b00'},
+  {id:4,  name:'Petro BIL',       members:['Temirkhan Alken','Orazbay Arsen','Raushan Yernar'],         color:'#ff3b5c'},
+  {id:5,  name:'L33TechForce',    members:['Gabduakhit Alibi','Utepova Dinara','Nasipkali Aigerim'],    color:'#ffd700'},
+  {id:6,  name:'MrBig',           members:['Sagymbaev Islam','Nurzhanuly O.',''],                       color:'#a855f7'},
+  {id:7,  name:'Команда 7',       members:['','',''],                                                   color:'#ec4899'},
+  {id:8,  name:'Команда 8',       members:['','',''],                                                   color:'#22d3ee'},
+  {id:9,  name:'Команда 9',       members:['','',''],                                                   color:'#84cc16'},
+  {id:10, name:'TKRobotics',      members:['Sharipov Nurassyl','Akhmatulin Syrym','Buzykin Alexey'],    color:'#f97316'},
+  {id:11, name:'NOMAD ROBOTICS',  members:['Ahmedhozha Alhan','Konysbek Abdulla','Kaldybai Erzat'],     color:'#06b6d4'},
+  {id:12, name:'Команда 12',      members:['','',''],                                                   color:'#e879f9'},
 ];
 
 // ═══════════════════════════════════════════════════════════════
@@ -1034,7 +1031,6 @@ function renderTeams() {
     <div class="team-card" style="--team-color:${h(t.color)}">
       <div class="team-card-header">
         <span class="team-number">#${t.id}</span>
-        <span class="team-flag">${h(t.flag)}</span>
         <span class="team-name">${h(t.name)}</span>
       </div>
       <div class="team-members">
@@ -1133,7 +1129,7 @@ function renderLive() {
       <div class="field-scoreboard">
         <div class="field-team-block">
           <span class="team-dot" style="background:${h(t1?.color||'#888')};margin-bottom:2px"></span>
-          <span class="field-team-name" style="color:${h(t1?.color||'var(--accent)')}">${h(t1?.flag||'')} ${h(t1?.name||'—')} <span style="font-size:9px;color:var(--green)">(Д)</span></span>
+          <span class="field-team-name" style="color:${h(t1?.color||'var(--accent)')}">${h(t1?.name||'—')} <span style="font-size:9px;color:var(--green)">(Д)</span></span>
           <div class="field-goal-wrap" style="margin-top:6px">
             <button class="btn-goal btn-goal-minus" onclick="fieldGoal(${f.id},0,-1)">−</button>
             <span class="field-goal" id="fg-${f.id}-0" style="color:${h(t1?.color||'var(--accent)')}">${f.goals[0]}</span>
@@ -1143,7 +1139,7 @@ function renderLive() {
         <span class="field-sep">:</span>
         <div class="field-team-block">
           <span class="team-dot" style="background:${h(t2?.color||'#888')};margin-bottom:2px"></span>
-          <span class="field-team-name" style="color:${h(t2?.color||'var(--green)')}">${h(t2?.flag||'')} ${h(t2?.name||'—')} <span style="font-size:9px;color:var(--orange)">(Г)</span></span>
+          <span class="field-team-name" style="color:${h(t2?.color||'var(--green)')}">${h(t2?.name||'—')} <span style="font-size:9px;color:var(--orange)">(Г)</span></span>
           <div class="field-goal-wrap" style="margin-top:6px">
             <button class="btn-goal btn-goal-minus" onclick="fieldGoal(${f.id},1,-1)">−</button>
             <span class="field-goal" id="fg-${f.id}-1" style="color:${h(t2?.color||'var(--green)')}">${f.goals[1]}</span>
@@ -1254,7 +1250,7 @@ function renderStandings() {
       <td>
         <div style="display:flex;align-items:center;gap:8px">
           <span class="team-dot" style="background:${h(t.color)}"></span>
-          <span style="font-size:13px">${h(t.flag)} ${h(t.name)}</span>
+          <span style="font-size:13px">${h(t.name)}</span>
         </div>
       </td>
       <td>${s.GP}</td>
@@ -1283,7 +1279,7 @@ function renderJury() {
     <div class="jury-card">
       <div class="jury-card-header">
         <span class="team-dot" style="background:${h(t.color)}"></span>
-        <span style="font-family:'Russo One',sans-serif;font-size:12px;font-weight:700">${h(t.flag)} ${h(t.name)}</span>
+        <span style="font-family:'Russo One',sans-serif;font-size:12px;font-weight:700">${h(t.name)}</span>
       </div>
 
       <div class="build-time-row">
@@ -1360,7 +1356,7 @@ function renderLeaderboard() {
       <td>
         <div style="display:flex;align-items:center;gap:8px">
           <span class="team-dot" style="background:${h(t.color)}"></span>
-          <span>${medal} ${h(t.flag)} ${h(t.name)}</span>
+          <span>${medal} ${h(t.name)}</span>
         </div>
       </td>
       <td style="color:var(--accent)">${gp.toFixed(1)}</td>
@@ -1580,7 +1576,7 @@ function openDrawModal() {
       div.innerHTML = `
         <span class="draw-rank">${i+1}</span>
         <span class="team-dot" style="background:${h(t.color)}"></span>
-        <span>${h(t.flag)} ${h(t.name)}</span>`;
+        <span>${h(t.name)}</span>`;
       list.appendChild(div);
       if (i === drawNewOrder.length - 1) {
         setTimeout(() => {
@@ -1636,7 +1632,6 @@ function openAddTeamModal() {
   selectedColor = TEAM_COLORS[teams.length % TEAM_COLORS.length];
   document.getElementById('modal-team-title').textContent = '+ Добавить команду';
   document.getElementById('tf-name').value = '';
-  document.getElementById('tf-flag').value = '🇰🇿';
   document.getElementById('tf-m1').value = '';
   document.getElementById('tf-m2').value = '';
   document.getElementById('tf-m3').value = '';
@@ -1651,7 +1646,6 @@ function openEditTeamModal(id) {
   selectedColor = t.color;
   document.getElementById('modal-team-title').textContent = 'Команданы өңдеу';
   document.getElementById('tf-name').value = t.name;
-  document.getElementById('tf-flag').value = t.flag;
   document.getElementById('tf-m1').value = t.members[0]||'';
   document.getElementById('tf-m2').value = t.members[1]||'';
   document.getElementById('tf-m3').value = t.members[2]||'';
@@ -1666,17 +1660,16 @@ function closeTeamModal() {
 function saveTeam() {
   const name = document.getElementById('tf-name').value.trim();
   if (!name) { alert('Команда атауын енгізіңіз'); return; }
-  const flag = document.getElementById('tf-flag').value.trim() || '🏳️';
   const m1 = document.getElementById('tf-m1').value.trim();
   const m2 = document.getElementById('tf-m2').value.trim();
   const m3 = document.getElementById('tf-m3').value.trim();
 
   if (editingTeamId) {
     const t = teams.find(x=>x.id===editingTeamId);
-    if (t) { t.name=name; t.flag=flag; t.members=[m1,m2,m3]; t.color=selectedColor; }
+    if (t) { t.name=name; t.members=[m1,m2,m3]; t.color=selectedColor; }
   } else {
     const newTeam = {
-      id: teamIdCounter++, name, flag,
+      id: teamIdCounter++, name,
       members: [m1,m2,m3], color: selectedColor,
       buildTime:null, engineering:0, robotDesign:0, presentation:0,
       teamForm:0, tableDecor:0, teamSpirit:0
