@@ -17,6 +17,9 @@ const pool = new Pool({
   max: 5,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
+  ssl: process.env.DATABASE_URL
+    ? { rejectUnauthorized: false }  // AWS RDS uses self-signed cert
+    : false,
 });
 
 pool.on('error', (err) => console.error('[db] Pool error:', err.message));
