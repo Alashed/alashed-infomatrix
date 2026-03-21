@@ -1802,6 +1802,7 @@ function syncState() {
 }
 
 let _wsFirstConnect = true;
+let _serverWasEmpty = false; // true if server had no state on startup
 
 function connectWS() {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
@@ -1813,8 +1814,8 @@ function connectWS() {
   ws.onopen = () => {
     document.getElementById('ws-dot').classList.add('online');
     document.getElementById('ws-label').textContent = 'LIVE';
-    if (!_wsFirstConnect) {
-      // Reconnect: push local state back to server
+    if (!_wsFirstConnect || _serverWasEmpty) {
+      // Reconnect OR server was empty: push local state
       syncState();
     }
     _wsFirstConnect = false;
@@ -1878,6 +1879,7 @@ async function initApp() {
     console.warn('[init] Could not load server state:', e.message);
   }
   if (!serverStateApplied) {
+    _serverWasEmpty = true;
     buildSchedule(teams);
   }
   renderAll();
