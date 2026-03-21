@@ -68,6 +68,12 @@ function scheduleSave(action = 'update') {
       await dbSave(gameState, action);
     } catch (e) {
       console.error('[db] Save failed:', e.message);
+      // Fallback: write to file so data isn't lost
+      try {
+        const OLD_FILE = process.env.STATE_FILE ||
+          path.join(path.dirname(__dirname), 'infomatrix-state.json');
+        fs.writeFileSync(OLD_FILE, JSON.stringify(gameState), 'utf8');
+      } catch {}
     }
   }, 300);
 }
@@ -190,32 +196,36 @@ const PORT = process.env.PORT || 3000;
 
 async function main() {
   // 1. Init DB schema
+  let dbOk = false;
   try {
     await initDb();
+    dbOk = true;
   } catch (e) {
-    console.error('[db] Init failed:', e.message);
-    process.exit(1);
+    console.error('[db] Init failed — running without DB:', e.message);
   }
 
   // 2. Load state from DB
-  try {
-    gameState = await dbLoad();
-    if (gameState) {
-      console.log('[db] State loaded from PostgreSQL');
+  if (dbOk) {
+    try {
+      gameState = await dbLoad();
+      if (gameState) console.log('[db] State loaded from PostgreSQL');
+    } catch (e) {
+      console.error('[db] Load failed:', e.message);
     }
-  } catch (e) {
-    console.error('[db] Load failed:', e.message);
   }
 
-  // 3. Migrate from old state.json if DB has no data yet
+  // 3. Fallback: load from state.json if DB unavailable or empty
   if (!gameState) {
     const OLD_FILE = process.env.STATE_FILE ||
       path.join(path.dirname(__dirname), 'infomatrix-state.json');
     try {
       const raw = fs.readFileSync(OLD_FILE, 'utf8');
       gameState = JSON.parse(raw);
-      await dbSave(gameState, 'migrate_from_file');
-      console.log('[db] Migrated from state.json → PostgreSQL');
+      console.log('[state] Loaded from file fallback');
+      if (dbOk) {
+        await dbSave(gameState, 'migrate_from_file');
+        console.log('[db] Migrated state.json → PostgreSQL');
+      }
     } catch {}
   }
 
