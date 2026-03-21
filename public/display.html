@@ -385,12 +385,24 @@ function renderStandings(s) {
   }).join('');
 }
 
+// ─── HTTP FALLBACK ───
+async function fetchState() {
+  try {
+    const r = await fetch('/state');
+    if (r.status === 204) return;          // no state on server yet
+    const data = await r.json();
+    if (data && data.teams) render(data);
+  } catch {}
+}
+
 // ─── WEBSOCKET ───
 let ws;
+let wsAlive = false;
 function connect() {
   const proto = location.protocol==='https:'?'wss':'ws';
   try { ws = new WebSocket(`${proto}://${location.host}/ws`); } catch { return; }
   ws.onopen = () => {
+    wsAlive = true;
     document.getElementById('ws-dot').classList.add('on');
     document.getElementById('ws-lbl').textContent = 'LIVE';
   };
@@ -401,6 +413,7 @@ function connect() {
     } catch {}
   };
   ws.onclose = () => {
+    wsAlive = false;
     document.getElementById('ws-dot').classList.remove('on');
     document.getElementById('ws-lbl').textContent = 'OFFLINE';
     setTimeout(connect, 3000);
@@ -408,7 +421,12 @@ function connect() {
   ws.onerror = () => ws.close();
 }
 
+// Load state immediately via HTTP, then connect WS for live updates
+fetchState();
 connect();
+
+// Poll via HTTP every 10s as fallback (catches missed WS updates)
+setInterval(() => { if (!wsAlive) fetchState(); }, 10000);
 </script>
 </body>
 </html>

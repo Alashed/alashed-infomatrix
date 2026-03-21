@@ -69,6 +69,12 @@ app.get('/', (req, res) =>
   res.sendFile(path.join(__dirname, 'public', 'display.html'))
 );
 
+// ── State (HTTP fallback for display page) ────────────────────
+app.get('/state', (req, res) => {
+  if (!gameState) return res.status(204).end();
+  res.json(gameState);
+});
+
 // ── Health ────────────────────────────────────────────────────
 app.get('/health', (req, res) => res.json({
   status: 'ok',

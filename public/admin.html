@@ -537,16 +537,16 @@ label.form-label{display:block;font-size:11px;color:var(--muted);margin-bottom:4
 
 <!-- ═══════════ NAV ═══════════ -->
 <nav class="app-nav">
-  <button class="nav-btn active" onclick="showTab('teams')">Команды</button>
-  <button class="nav-btn" onclick="showTab('schedule')">Расписание</button>
-  <button class="nav-btn" onclick="showTab('live')">Live</button>
+  <button class="nav-btn active" onclick="showTab('teams')"><span class="iconify" data-icon="hugeicons:user-group" data-width="13" style="vertical-align:middle;margin-right:4px"></span>Команды</button>
+  <button class="nav-btn" onclick="showTab('schedule')"><span class="iconify" data-icon="hugeicons:calendar-03" data-width="13" style="vertical-align:middle;margin-right:4px"></span>Расписание</button>
+  <button class="nav-btn" onclick="showTab('live')"><span class="iconify" data-icon="hugeicons:live-streaming-01" data-width="13" style="vertical-align:middle;margin-right:4px"></span>Live</button>
   <button class="nav-btn" id="nav-matches" onclick="showTab('matches')">
-    Матчи <span id="badge-matches" class="badge" style="display:none">0</span>
+    <span class="iconify" data-icon="hugeicons:football" data-width="13" style="vertical-align:middle;margin-right:4px"></span>Матчи <span id="badge-matches" class="badge" style="display:none">0</span>
   </button>
-  <button class="nav-btn" onclick="showTab('standings')">Таблица</button>
-  <button class="nav-btn" onclick="showTab('jury')">Жюри</button>
-  <button class="nav-btn" onclick="showTab('leaderboard')">Итог</button>
-  <button class="nav-btn" onclick="showTab('settings')">Настройки</button>
+  <button class="nav-btn" onclick="showTab('standings')"><span class="iconify" data-icon="hugeicons:analytics-01" data-width="13" style="vertical-align:middle;margin-right:4px"></span>Таблица</button>
+  <button class="nav-btn" onclick="showTab('jury')"><span class="iconify" data-icon="hugeicons:scale" data-width="13" style="vertical-align:middle;margin-right:4px"></span>Жюри</button>
+  <button class="nav-btn" onclick="showTab('leaderboard')"><span class="iconify" data-icon="hugeicons:trophy" data-width="13" style="vertical-align:middle;margin-right:4px"></span>Итог</button>
+  <button class="nav-btn" onclick="showTab('settings')"><span class="iconify" data-icon="hugeicons:settings-01" data-width="13" style="vertical-align:middle;margin-right:4px"></span>Настройки</button>
 </nav>
 
 <!-- ═══════════ MAIN ═══════════ -->
@@ -556,7 +556,7 @@ label.form-label{display:block;font-size:11px;color:var(--muted);margin-bottom:4
   <div id="tab-teams" class="tab-panel active">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap">
       <div class="section-title" style="margin-bottom:0;flex:1">Команды</div>
-      <button class="btn btn-primary" onclick="openAddTeamModal()">+ Добавить команду</button>
+      <button class="btn btn-primary" onclick="openAddTeamModal()"><span class="iconify" data-icon="hugeicons:user-add-01" data-width="13" style="vertical-align:middle"></span> Добавить команду</button>
     </div>
     <div id="teams-grid" class="teams-grid"></div>
   </div>
@@ -565,9 +565,9 @@ label.form-label{display:block;font-size:11px;color:var(--muted);margin-bottom:4
   <div id="tab-schedule" class="tab-panel">
     <div class="section-title">Расписание</div>
     <div class="schedule-controls">
-      <button class="btn btn-warning" onclick="openDrawModal()">Жеребьёвка команд</button>
-      <button class="btn btn-primary" onclick="shuffleMatches()">Перемешать матчи</button>
-      <button class="btn btn-ghost" onclick="resetMatchOrder()">По умолчанию</button>
+      <button class="btn btn-warning" onclick="openDrawModal()"><span class="iconify" data-icon="hugeicons:dice-01" data-width="13" style="vertical-align:middle"></span> Жеребьёвка</button>
+      <button class="btn btn-primary" onclick="shuffleMatches()"><span class="iconify" data-icon="hugeicons:shuffle-01" data-width="13" style="vertical-align:middle"></span> Перемешать</button>
+      <button class="btn btn-ghost" onclick="resetMatchOrder()"><span class="iconify" data-icon="hugeicons:sort-by-up-01" data-width="13" style="vertical-align:middle"></span> По умолч.</button>
     </div>
     <div id="schedule-list" class="schedule-list"></div>
   </div>
@@ -1046,8 +1046,8 @@ function renderTeams() {
         <span>Итого: <b style="color:var(--gold)">${getTotalScore(t.id).toFixed(1)}</b></span>
       </div>
       <div class="team-actions">
-        <button class="btn btn-ghost btn-sm" onclick="openEditTeamModal(${t.id})">Ред.</button>
-        <button class="btn btn-danger btn-sm" onclick="openDeleteModal(${t.id})">Удалить</button>
+        <button class="btn btn-ghost btn-sm" onclick="openEditTeamModal(${t.id})">${ic('pencil-edit-01')} Ред.</button>
+        <button class="btn btn-danger btn-sm" onclick="openDeleteModal(${t.id})">${ic('delete-02')} Удалить</button>
       </div>
     </div>`;
   }).join('');
@@ -1155,16 +1155,16 @@ function renderLive() {
 
       <div class="field-controls">
         ${!f.running && !f.finished && f.seconds===CONFIG.halfDuration && f.half===1
-          ? `<button class="btn btn-success btn-sm" onclick="fieldStart(${f.id})">Старт</button>` : ''}
+          ? `<button class="btn btn-success btn-sm" onclick="fieldStart(${f.id})">${ic('play')} Старт</button>` : ''}
         ${!f.running && !f.finished && !(f.seconds===CONFIG.halfDuration && f.half===1)
-          ? `<button class="btn btn-primary btn-sm" onclick="fieldResume(${f.id})">Продолжить</button>` : ''}
+          ? `<button class="btn btn-primary btn-sm" onclick="fieldResume(${f.id})">${ic('play')} Продолжить</button>` : ''}
         ${f.running
-          ? `<button class="btn btn-warning btn-sm" onclick="fieldPause(${f.id})">Пауза</button>` : ''}
+          ? `<button class="btn btn-warning btn-sm" onclick="fieldPause(${f.id})">${ic('pause')} Пауза</button>` : ''}
         ${!f.running && f.seconds===0 && f.half===1
-          ? `<button class="btn btn-warning btn-sm" onclick="fieldNextHalf(${f.id})">Тайм 2</button>` : ''}
+          ? `<button class="btn btn-warning btn-sm" onclick="fieldNextHalf(${f.id})">${ic('next')} Тайм 2</button>` : ''}
         ${f.finished
-          ? `<span style="font-size:11px;color:var(--green)">Матч завершён</span>` : ''}
-        <button class="btn btn-success btn-sm" onclick="fieldSave(${f.id})">Сохр.</button>
+          ? `<span style="font-size:11px;color:var(--green)">${ic('checkmark-circle-02')} Матч завершён</span>` : ''}
+        <button class="btn btn-success btn-sm" onclick="fieldSave(${f.id})">${ic('checkmark-circle-02')} Сохр.</button>
         <button class="btn btn-ghost btn-sm" onclick="fieldCancel(${f.id})">&times;</button>
       </div>
       ` : `<div class="field-no-match">Матч не назначен</div>`}
@@ -1222,8 +1222,8 @@ function renderMatches() {
       ${m.played ? winner : ''}
       <div class="match-inputs" style="margin-left:auto">
         ${m.played ? `
-          <button class="btn btn-ghost btn-sm" onclick="resetMatch(${m.id})">Изм.</button>
-          <button class="btn btn-danger btn-icon btn-sm" onclick="clearMatch(${m.id})">&times;</button>
+          <button class="btn btn-ghost btn-sm" onclick="resetMatch(${m.id})">${ic('pencil-edit-01')} Изм.</button>
+          <button class="btn btn-danger btn-icon btn-sm" onclick="clearMatch(${m.id})">${ic('delete-02')}</button>
         ` : `
           <input type="number" id="g1-${m.id}" class="input" min="0" max="99" placeholder="0" style="width:54px">
           <span style="color:var(--muted)">:</span>
@@ -1286,7 +1286,7 @@ function renderJury() {
       </div>
 
       <div class="build-time-row">
-        <label class="form-label">Время сборки (мин)</label>
+        <label class="form-label"><span class="iconify" data-icon="hugeicons:stopwatch-01" data-width="11" style="vertical-align:middle"></span> Время сборки (мин)</label>
         <div style="display:flex;gap:8px;align-items:center">
           <input type="number" class="input" style="width:90px" min="0" max="60" step="0.5"
             value="${bt !== null && bt !== '' ? bt : ''}"
