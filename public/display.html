@@ -249,16 +249,18 @@ function esc(s) {
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-function teamStats(teams, matches, teamId) {
+function teamStats(teams, matches, teamId, cfg) {
+  const wp = cfg?.winPoints  ?? 3;
+  const dp = cfg?.drawPoints ?? 1;
   let W=0,D=0,L=0,GF=0,GA=0,pts=0;
   matches.forEach(m => {
     if (!m.played) return;
     if (m.team1Id===teamId) {
       GF+=m.goals1;GA+=m.goals2;
-      if(m.goals1>m.goals2){W++;pts+=3;}else if(m.goals1===m.goals2){D++;pts++;}else L++;
+      if(m.goals1>m.goals2){W++;pts+=wp;}else if(m.goals1===m.goals2){D++;pts+=dp;}else L++;
     } else if (m.team2Id===teamId) {
       GF+=m.goals2;GA+=m.goals1;
-      if(m.goals2>m.goals1){W++;pts+=3;}else if(m.goals1===m.goals2){D++;pts++;}else L++;
+      if(m.goals2>m.goals1){W++;pts+=wp;}else if(m.goals1===m.goals2){D++;pts+=dp;}else L++;
     }
   });
   return {W,D,L,GF,GA,GD:GF-GA,pts,GP:W+D+L};
@@ -359,14 +361,14 @@ function renderFields(s, elapsedSec) {
 function renderStandings(s) {
   const tbody = document.getElementById('stand-body');
   const sorted = [...s.teams].sort((a,b) => {
-    const sa = teamStats(s.teams,s.matches,a.id);
-    const sb = teamStats(s.teams,s.matches,b.id);
+    const sa = teamStats(s.teams,s.matches,a.id,s.config);
+    const sb = teamStats(s.teams,s.matches,b.id,s.config);
     if (sb.pts!==sa.pts) return sb.pts-sa.pts;
     if (sb.GD!==sa.GD)   return sb.GD-sa.GD;
     return sb.GF-sa.GF;
   });
   tbody.innerHTML = sorted.map((t,i) => {
-    const st = teamStats(s.teams,s.matches,t.id);
+    const st = teamStats(s.teams,s.matches,t.id,s.config);
     const pc = i===0?'p1':i===1?'p2':i===2?'p3':'';
     const md = '';
     return `

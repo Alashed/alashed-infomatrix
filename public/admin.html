@@ -1794,6 +1794,7 @@ function setCfg(key, val, min, max) {
 
 function getStateSnapshot() {
   return {
+    config:  { ...CONFIG },
     teams:   teams.map(t => ({ ...t })),
     matches: matches.map(m => ({ ...m })),
     fields:  fields.map(f => ({ ...f, goals: [...f.goals] })),
