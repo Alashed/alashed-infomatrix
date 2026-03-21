@@ -202,8 +202,8 @@ body::before{
 
   <!-- TOP BAR -->
   <div class="topbar">
-    <div class="topbar-logo">⚽ INFOMATRIX<span>·ASIA</span> 2026</div>
-    <div class="topbar-info">ROBOT FOOTBALL · ROUND-ROBIN · 12 КОМАНД</div>
+    <div class="topbar-logo">INFOMATRIX<span>·ASIA</span> 2026</div>
+    <div class="topbar-info">ROBOT FOOTBALL · 2×ROUND-ROBIN · 12 КОМАНД</div>
     <div class="ws-ind">
       <div class="ws-dot" id="ws-dot"></div>
       <span id="ws-lbl">OFFLINE</span>
@@ -221,7 +221,7 @@ body::before{
     <!-- RIGHT: STANDINGS -->
     <div class="panel-stand">
       <div class="stand-title">
-        📊 Таблица
+        Таблица
         <span class="stand-sub" id="upd-time"></span>
       </div>
       <div class="stand-scroll">
@@ -264,29 +264,46 @@ function teamStats(teams, matches, teamId) {
   return {W,D,L,GF,GA,GD:GF-GA,pts,GP:W+D+L};
 }
 
+// ─── STATE CACHE (for smooth local timer) ───
+let lastState    = null;
+let lastStateTs  = 0;  // Date.now() when state was received
+
 // ─── RENDER ───
 function render(s) {
-  renderFields(s);
+  lastState   = s;
+  lastStateTs = Date.now();
+  renderFields(s, 0);   // 0 elapsed ms on fresh state
   renderStandings(s);
   const el = document.getElementById('upd-time');
   if (el) el.textContent = new Date().toLocaleTimeString('ru');
 }
 
-function renderFields(s) {
+// Local smooth timer — updates only running countdown elements
+// runs every 100ms; full re-render comes from WS
+setInterval(() => {
+  if (!lastState) return;
+  const elapsed = (Date.now() - lastStateTs) / 1000;
+  (lastState.fields || []).forEach(f => {
+    if (!f.running || f.finished) return;
+    const secs = Math.max(0, f.seconds - elapsed);
+    const el = document.getElementById(`lt-${f.id}`);
+    if (!el) return;
+    const mm = Math.floor(secs / 60);
+    const ss = Math.floor(secs % 60);
+    el.textContent = `${mm}:${ss.toString().padStart(2,'0')}`;
+  });
+}, 100);
+
+function renderFields(s, elapsedSec) {
   const container = document.getElementById('fields-display');
   const activeFields = (s.fields || []).filter(f => f.matchId);
   const count = Math.min(activeFields.length, 4) || 1;
 
-  // Update grid class
   container.className = `fields-display count-${Math.min(count, 4)}`;
-
-  // Always render all 4 slots, hide empty ones if less than 4 active
-  const allFields = s.fields || [];
 
   if (activeFields.length === 0) {
     container.innerHTML = `
       <div class="field-box idle" style="min-height:120px">
-        <div style="font-size:40px;opacity:0.2">⚽</div>
         <div class="no-match-box">МАТЧИ НЕ ИДУТ</div>
       </div>`;
     return;
@@ -297,8 +314,12 @@ function renderFields(s) {
     const t1 = m ? s.teams.find(t => t.id === m.team1Id) : null;
     const t2 = m ? s.teams.find(t => t.id === m.team2Id) : null;
 
-    const mm = Math.floor((f.seconds||0) / 60);
-    const ss = (f.seconds||0) % 60;
+    // Apply local elapsed time for running fields
+    const secs = f.running && !f.finished
+      ? Math.max(0, (f.seconds||0) - (elapsedSec||0))
+      : (f.seconds||0);
+    const mm = Math.floor(secs / 60);
+    const ss = Math.floor(secs % 60);
     const timerStr = `${mm}:${ss.toString().padStart(2,'0')}`;
     const timerCls = f.finished ? 't-stop' : f.running ? 't-run' : 't-pause';
     const boxCls   = f.running ? 'running' : '';
@@ -330,7 +351,7 @@ function renderFields(s) {
         </div>
       </div>
 
-      <div class="timer-disp ${timerCls}">${timerStr}</div>
+      <div class="timer-disp ${timerCls}" id="lt-${f.id}">${timerStr}</div>
     </div>`;
   }).join('');
 }
@@ -347,7 +368,7 @@ function renderStandings(s) {
   tbody.innerHTML = sorted.map((t,i) => {
     const st = teamStats(s.teams,s.matches,t.id);
     const pc = i===0?'p1':i===1?'p2':i===2?'p3':'';
-    const md = i===0?'🥇':i===1?'🥈':i===2?'🥉':'';
+    const md = '';
     return `
     <tr>
       <td><span class="pos-c ${pc}">${i+1}</span></td>
