@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>INFOMATRIX-ASIA 2026 · Robot Football · Display</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=JetBrains+Mono:wght@300;400;600&display=swap');
+
+:root {
+  --bg:     #040810;
+  --bg2:    #0a1020;
+  --accent: #00d4ff;
+  --green:  #00ff88;
+  --orange: #ff7b00;
+  --red:    #ff3b5c;
+  --gold:   #ffd700;
+  --text:   #e2e8f0;
+  --muted:  #4a5568;
+  --border: rgba(255,255,255,0.07);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+html,body{
+  width:100%;height:100%;overflow:hidden;
+  background:var(--bg);color:var(--text);
+  font-family:'JetBrains Mono',monospace;
+}
+
+/* Grid BG */
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(0,212,255,0.02) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,212,255,0.02) 1px,transparent 1px);
+  background-size:50px 50px;
+  pointer-events:none;z-index:0;
+}
+
+.layout{
+  position:relative;z-index:1;
+  display:grid;
+  grid-template-rows:auto 1fr;
+  height:100vh;
+}
+
+/* ─── TOP BAR ─── */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 24px;
+  background:rgba(4,8,16,0.95);
+  border-bottom:1px solid var(--border);
+  backdrop-filter:blur(8px);
+}
+.topbar-logo{
+  font-family:'Orbitron',sans-serif;font-size:14px;font-weight:900;
+  color:var(--accent);letter-spacing:3px;
+}
+.topbar-logo span{color:var(--green)}
+.topbar-info{font-size:11px;color:var(--muted);letter-spacing:1px}
+.ws-indicator{
+  display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);
+}
+.ws-dot{
+  width:7px;height:7px;border-radius:50%;background:var(--muted);
+}
+.ws-dot.on{background:var(--green);box-shadow:0 0 5px var(--green)}
+
+/* ─── CONTENT AREA ─── */
+.content{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:0;
+  overflow:hidden;
+}
+
+/* ─── LEFT: LIVE MATCH ─── */
+.panel-live{
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:32px 24px;
+  border-right:1px solid var(--border);
+  background:rgba(0,0,0,0.2);
+  gap:20px;
+}
+
+.live-header{
+  display:flex;align-items:center;gap:10px;
+}
+.live-badge{
+  font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;
+  padding:4px 16px;border-radius:20px;letter-spacing:3px;
+}
+.live-badge.active{
+  background:rgba(255,59,92,0.2);color:var(--red);
+  border:1px solid rgba(255,59,92,0.4);
+  animation:blink 1s infinite;
+}
+.live-badge.idle{
+  background:rgba(100,116,139,0.15);color:var(--muted);
+  border:1px solid var(--border);
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.4}}
+
+.half-badge{
+  font-family:'Orbitron',sans-serif;font-size:11px;font-weight:600;
+  padding:4px 14px;border-radius:20px;letter-spacing:2px;
+}
+.half-1{background:rgba(0,212,255,0.1);color:var(--accent);border:1px solid rgba(0,212,255,0.25)}
+.half-2{background:rgba(255,123,0,0.1);color:var(--orange);border:1px solid rgba(255,123,0,0.25)}
+
+.match-board{
+  width:100%;
+  display:flex;flex-direction:column;align-items:center;gap:16px;
+}
+
+.teams-vs{
+  display:flex;align-items:center;justify-content:space-between;
+  width:100%;gap:12px;
+}
+
+.team-display{flex:1;text-align:center}
+
+.team-display-dot{
+  width:16px;height:16px;border-radius:50%;
+  margin:0 auto 10px;
+  box-shadow:0 0 12px currentColor;
+}
+
+.team-display-name{
+  font-family:'Orbitron',sans-serif;
+  font-size:clamp(12px,2vw,20px);
+  font-weight:700;
+  margin-bottom:4px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+
+.team-display-members{
+  font-size:clamp(9px,1.2vw,12px);color:var(--muted);line-height:1.6;
+}
+
+.vs-divider{
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+}
+.vs-text{
+  font-family:'Orbitron',sans-serif;font-size:14px;color:var(--muted);
+}
+
+.score-display{
+  display:flex;align-items:center;gap:0;
+  font-family:'Orbitron',sans-serif;
+}
+.score-num{
+  font-size:clamp(60px,9vw,120px);font-weight:900;
+  line-height:1;
+  text-shadow:0 0 30px currentColor;
+  min-width:0.7em;text-align:center;
+}
+.score-sep{
+  font-size:clamp(40px,5vw,80px);color:var(--muted);
+  padding:0 4px;margin-top:-8px;
+}
+
+.timer-display{
+  font-family:'Orbitron',sans-serif;
+  font-size:clamp(28px,5vw,56px);font-weight:700;
+  letter-spacing:4px;
+}
+.timer-running{color:var(--green)}
+.timer-paused{color:var(--orange)}
+.timer-stopped{color:var(--red);animation:blink 1s infinite}
+
+.no-match-msg{
+  font-family:'Orbitron',sans-serif;
+  color:var(--muted);font-size:14px;text-align:center;letter-spacing:2px;
+}
+.no-match-icon{font-size:48px;margin-bottom:12px;opacity:0.3}
+
+/* ─── RIGHT: STANDINGS ─── */
+.panel-standings{
+  display:flex;flex-direction:column;
+  padding:20px;
+  overflow:hidden;
+}
+
+.standings-title{
+  font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;
+  color:var(--accent);letter-spacing:2px;
+  margin-bottom:14px;padding-bottom:10px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;
+}
+
+.standings-scroll{flex:1;overflow-y:auto}
+.standings-scroll::-webkit-scrollbar{width:3px}
+.standings-scroll::-webkit-scrollbar-thumb{background:var(--border)}
+
+.stand-table{width:100%;border-collapse:collapse}
+.stand-table th{
+  font-family:'Orbitron',sans-serif;font-size:9px;color:var(--muted);
+  padding:6px 8px;text-align:center;
+  border-bottom:1px solid var(--border);letter-spacing:1px;
+  position:sticky;top:0;background:var(--bg2);z-index:1;
+}
+.stand-table th:nth-child(2){text-align:left}
+.stand-table td{
+  padding:8px 8px;text-align:center;
+  border-bottom:1px solid rgba(255,255,255,0.03);
+  font-size:12px;
+}
+.stand-table td:nth-child(2){text-align:left;max-width:160px}
+
+.stand-table tr:nth-child(1) td{
+  background:rgba(255,215,0,0.06);
+}
+.stand-table tr:nth-child(2) td{background:rgba(192,192,192,0.04)}
+.stand-table tr:nth-child(3) td{background:rgba(205,127,50,0.04)}
+
+.pos-cell{
+  font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;
+  width:24px;height:24px;border-radius:5px;
+  display:inline-flex;align-items:center;justify-content:center;
+}
+.pos-1{background:rgba(255,215,0,0.2);color:var(--gold)}
+.pos-2{background:rgba(192,192,192,0.15);color:#c0c0c0}
+.pos-3{background:rgba(205,127,50,0.12);color:#cd7f32}
+
+.pts-cell{
+  font-family:'Orbitron',sans-serif;font-weight:700;
+  color:var(--accent);
+}
+
+.team-name-cell{
+  display:flex;align-items:center;gap:8px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+
+.dot{
+  width:8px;height:8px;border-radius:50%;flex-shrink:0;
+}
+
+/* scrollbar */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-logo">⚽ INFOMATRIX<span>·ASIA</span> 2026</div>
+    <div class="topbar-info">ROBOT FOOTBALL · ROUND-ROBIN · 12 КОМАНД</div>
+    <div class="ws-indicator">
+      <div class="ws-dot" id="ws-dot"></div>
+      <span id="ws-label">OFFLINE</span>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- LEFT: LIVE -->
+    <div class="panel-live" id="panel-live">
+      <div id="no-match" style="text-align:center">
+        <div class="no-match-icon">⚽</div>
+        <div class="no-match-msg">Матч не выбран</div>
+      </div>
+      <div id="live-content" style="display:none;width:100%">
+        <div class="live-header" style="justify-content:center;margin-bottom:8px">
+          <span class="live-badge active" id="live-badge">🔴 LIVE</span>
+          <span class="half-badge half-1" id="half-badge" style="margin-left:10px">ТАЙМ 1</span>
+        </div>
+        <div class="match-board">
+          <div class="teams-vs">
+            <div class="team-display">
+              <div class="team-display-dot" id="t1-dot"></div>
+              <div class="team-display-name" id="t1-name">—</div>
+              <div class="team-display-members" id="t1-members"></div>
+            </div>
+            <div class="vs-divider">
+              <div class="score-display">
+                <span class="score-num" id="score-g1" style="color:var(--accent)">0</span>
+                <span class="score-sep">:</span>
+                <span class="score-num" id="score-g2" style="color:var(--green)">0</span>
+              </div>
+              <div class="vs-text">VS</div>
+            </div>
+            <div class="team-display">
+              <div class="team-display-dot" id="t2-dot" style="background:var(--green)"></div>
+              <div class="team-display-name" id="t2-name">—</div>
+              <div class="team-display-members" id="t2-members"></div>
+            </div>
+          </div>
+          <div class="timer-display timer-paused" id="timer-el">2:00</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: STANDINGS -->
+    <div class="panel-standings">
+      <div class="standings-title">
+        📊 Турнирная таблица
+        <span style="font-size:10px;color:var(--muted);margin-left:auto" id="stand-updated"></span>
+      </div>
+      <div class="standings-scroll">
+        <table class="stand-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Команда</th>
+              <th>В</th><th>Н</th><th>П</th>
+              <th>ГЗ</th><th>ГП</th><th>ГР</th>
+              <th>ОЧ</th>
+            </tr>
+          </thead>
+          <tbody id="stand-body">
+            <tr><td colspan="9" style="text-align:center;color:var(--muted);padding:20px">Ожидание данных...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let state = null;
+
+// ─── RENDER STATE ───
+function render(s) {
+  state = s;
+  renderLive(s);
+  renderStandings(s);
+  document.getElementById('stand-updated').textContent = new Date().toLocaleTimeString('ru');
+}
+
+function getTeamStats(teams, matches, teamId) {
+  let W=0,D=0,L=0,GF=0,GA=0,pts=0;
+  matches.forEach(m => {
+    if (!m.played) return;
+    if (m.team1Id === teamId) {
+      GF+=m.goals1; GA+=m.goals2;
+      if (m.goals1>m.goals2){W++;pts+=3;}
+      else if(m.goals1===m.goals2){D++;pts++;}
+      else L++;
+    } else if (m.team2Id === teamId) {
+      GF+=m.goals2; GA+=m.goals1;
+      if (m.goals2>m.goals1){W++;pts+=3;}
+      else if(m.goals1===m.goals2){D++;pts++;}
+      else L++;
+    }
+  });
+  return {W,D,L,GF,GA,GD:GF-GA,pts,GP:W+D+L};
+}
+
+function renderLive(s) {
+  const noMatch = document.getElementById('no-match');
+  const liveContent = document.getElementById('live-content');
+
+  if (!s.liveMatchId) {
+    noMatch.style.display = '';
+    liveContent.style.display = 'none';
+    return;
+  }
+
+  const m = s.matches.find(x => x.id === s.liveMatchId);
+  if (!m) { noMatch.style.display=''; liveContent.style.display='none'; return; }
+
+  const t1 = s.teams.find(t => t.id === m.team1Id);
+  const t2 = s.teams.find(t => t.id === m.team2Id);
+  if (!t1||!t2) return;
+
+  noMatch.style.display = 'none';
+  liveContent.style.display = 'block';
+
+  // Team info
+  document.getElementById('t1-dot').style.background = t1.color;
+  document.getElementById('t1-dot').style.boxShadow = `0 0 12px ${t1.color}`;
+  document.getElementById('t1-name').textContent = `${t1.flag} ${t1.name}`;
+  document.getElementById('t1-name').style.color = t1.color;
+  document.getElementById('t1-members').innerHTML = t1.members.filter(x=>x).join('<br>');
+
+  document.getElementById('t2-dot').style.background = t2.color;
+  document.getElementById('t2-dot').style.boxShadow = `0 0 12px ${t2.color}`;
+  document.getElementById('t2-name').textContent = `${t2.flag} ${t2.name}`;
+  document.getElementById('t2-name').style.color = t2.color;
+  document.getElementById('t2-members').innerHTML = t2.members.filter(x=>x).join('<br>');
+
+  // Score
+  document.getElementById('score-g1').textContent = s.liveGoals[0];
+  document.getElementById('score-g2').textContent = s.liveGoals[1];
+  document.getElementById('score-g1').style.color = t1.color;
+  document.getElementById('score-g2').style.color = t2.color;
+
+  // Timer
+  const secs = s.liveSeconds || 0;
+  const mm = Math.floor(secs / 60);
+  const ss = secs % 60;
+  const timerEl = document.getElementById('timer-el');
+  timerEl.textContent = `${mm}:${ss.toString().padStart(2,'0')}`;
+  if (s.liveFinished) timerEl.className = 'timer-display timer-stopped';
+  else if (s.liveRunning) timerEl.className = 'timer-display timer-running';
+  else timerEl.className = 'timer-display timer-paused';
+
+  // Half
+  const halfEl = document.getElementById('half-badge');
+  halfEl.textContent = `ТАЙМ ${s.liveHalf||1}`;
+  halfEl.className = `half-badge half-${s.liveHalf||1}`;
+
+  // Live badge
+  const badge = document.getElementById('live-badge');
+  if (m.played) {
+    badge.className = 'live-badge idle';
+    badge.textContent = '✓ ЗАВЕРШЁН';
+  } else {
+    badge.className = 'live-badge active';
+    badge.textContent = '🔴 LIVE';
+  }
+}
+
+function renderStandings(s) {
+  const tbody = document.getElementById('stand-body');
+  const sorted = [...s.teams].sort((a,b) => {
+    const sa = getTeamStats(s.teams, s.matches, a.id);
+    const sb = getTeamStats(s.teams, s.matches, b.id);
+    if (sb.pts !== sa.pts) return sb.pts - sa.pts;
+    if (sb.GD !== sa.GD) return sb.GD - sa.GD;
+    return sb.GF - sa.GF;
+  });
+
+  tbody.innerHTML = sorted.map((t, i) => {
+    const st = getTeamStats(s.teams, s.matches, t.id);
+    const posClass = i===0?'pos-1':i===1?'pos-2':i===2?'pos-3':'';
+    const medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':'';
+    return `
+    <tr>
+      <td><span class="pos-cell ${posClass}">${i+1}</span></td>
+      <td>
+        <div class="team-name-cell">
+          <span class="dot" style="background:${t.color}"></span>
+          <span>${medal}${t.flag} ${t.name}</span>
+        </div>
+      </td>
+      <td style="color:var(--green)">${st.W}</td>
+      <td style="color:var(--muted)">${st.D}</td>
+      <td style="color:var(--red)">${st.L}</td>
+      <td>${st.GF}</td>
+      <td>${st.GA}</td>
+      <td style="color:${st.GD>=0?'var(--green)':'var(--red)'}">${st.GD>0?'+':''}${st.GD}</td>
+      <td class="pts-cell">${st.pts}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── WEBSOCKET ───
+let ws;
+function connect() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  const url = `${proto}://${location.host}/ws`;
+  try { ws = new WebSocket(url); } catch(e) { return; }
+
+  ws.onopen = () => {
+    document.getElementById('ws-dot').classList.add('on');
+    document.getElementById('ws-label').textContent = 'LIVE';
+  };
+  ws.onmessage = (e) => {
+    try {
+      const msg = JSON.parse(e.data);
+      if (msg.type === 'state' && msg.data) render(msg.data);
+    } catch(ex) {}
+  };
+  ws.onclose = () => {
+    document.getElementById('ws-dot').classList.remove('on');
+    document.getElementById('ws-label').textContent = 'OFFLINE';
+    setTimeout(connect, 3000);
+  };
+  ws.onerror = () => ws.close();
+}
+
+connect();
+</script>
+</body>
+</html>
