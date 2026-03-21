@@ -1443,7 +1443,11 @@ function fieldGoal(fieldId, teamIdx, delta) {
 
 function _fieldStopTimer(fieldId) {
   const t = fieldTimers[fieldId];
-  if (t) { clearInterval(t.intervalId); delete fieldTimers[fieldId]; }
+  if (t) {
+    clearInterval(t.intervalId);
+    if (t.syncId) clearInterval(t.syncId);
+    delete fieldTimers[fieldId];
+  }
   const f = fields.find(x => x.id === fieldId);
   if (f) f.running = false;
 }
@@ -1462,12 +1466,12 @@ function _fieldTick(fieldId) {
     el.textContent = `${mm}:${ss.toString().padStart(2,'0')}`;
     el.className = 'field-timer timer-running';
   }
-  syncState();
+  // Timer ticks don't need to sync every 250ms — only sync on stop/end
   if (f.seconds <= 0) {
     _fieldStopTimer(fieldId);
     if (f.half === 2) f.finished = true;
-    renderLive(); // re-render to show correct buttons
-    syncState();
+    renderLive();
+    syncState(); // sync once when timer ends
   }
 }
 
@@ -1476,6 +1480,10 @@ function fieldStart(fieldId) {
   if (!f || !f.matchId) return;
   const t = { startTs: Date.now(), startSecs: f.seconds };
   t.intervalId = setInterval(() => _fieldTick(fieldId), 250);
+  // Sync timer state to display every 5s while running
+  t.syncId = setInterval(() => {
+    if (f.running) syncState();
+  }, 5000);
   fieldTimers[fieldId] = t;
   f.running = true;
   renderLive();
