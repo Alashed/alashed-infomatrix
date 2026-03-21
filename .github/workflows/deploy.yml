@@ -37,18 +37,27 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: eu-north-1
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          DB_NAME: infomatrix
+          DB_USER: infomatrix
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         run: |
+          DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@localhost:5432/${DB_NAME}"
+
           CMD=$(aws ssm send-command \
             --instance-ids "i-08eb56616ddb569bc" \
             --document-name "AWS-RunShellScript" \
             --region eu-north-1 \
             --comment "infomatrix-autodeploy" \
             --parameters "commands=[
+              'sudo apt-get install -y postgresql > /dev/null 2>&1 || true',
+              'sudo systemctl enable postgresql --now || true',
+              'sudo -u postgres psql -tc \"SELECT 1 FROM pg_roles WHERE rolname=\\\"${DB_USER}\\\"\" | grep -q 1 || sudo -u postgres psql -c \"CREATE USER ${DB_USER} WITH PASSWORD \\\"${DB_PASSWORD}\\\"\"',
+              'sudo -u postgres psql -tc \"SELECT 1 FROM pg_database WHERE datname=\\\"${DB_NAME}\\\"\" | grep -q 1 || sudo -u postgres createdb -O ${DB_USER} ${DB_NAME}',
               'cd /tmp && curl -sf -o infomatrix.tar.gz \"${PRESIGNED_URL}\"',
               'sudo -u ubuntu bash -c \"rm -rf /home/ubuntu/infomatrix.old; mv /home/ubuntu/infomatrix /home/ubuntu/infomatrix.old 2>/dev/null || true; mkdir -p /home/ubuntu/infomatrix\"',
               'sudo -u ubuntu bash -c \"tar -xzf /tmp/infomatrix.tar.gz -C /home/ubuntu/infomatrix\"',
               'sudo -u ubuntu bash -c \"cd /home/ubuntu/infomatrix && npm install --production --silent\"',
-              'printf \"PORT=7000\nNODE_ENV=production\nADMIN_TOKEN=${ADMIN_TOKEN}\nSTATE_FILE=/home/ubuntu/infomatrix-state.json\n\" | sudo -u ubuntu tee /home/ubuntu/infomatrix/.env > /dev/null',
+              'printf \"PORT=7000\\nNODE_ENV=production\\nADMIN_TOKEN=${ADMIN_TOKEN}\\nDATABASE_URL=${DATABASE_URL}\\n\" | sudo -u ubuntu tee /home/ubuntu/infomatrix/.env > /dev/null',
               'sudo systemctl restart infomatrix',
               'sleep 4 && sudo systemctl is-active infomatrix && echo OK'
             ]" \

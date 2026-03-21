@@ -1,46 +1,77 @@
-const express  = require('express');
-const http     = require('http');
-const WebSocket= require('ws');
-const path     = require('path');
-const fs       = require('fs');
-const crypto   = require('crypto');
+const express   = require('express');
+const http      = require('http');
+const WebSocket = require('ws');
+const path      = require('path');
+const fs        = require('fs');
+const crypto    = require('crypto');
+const { Pool }  = require('pg');
 
 const app    = express();
 const server = http.createServer(app);
 const wss    = new WebSocket.Server({ server, path: '/ws' });
 
-// ── Persistence ──────────────────────────────────────────────
-// Stored OUTSIDE the app directory so deploys never wipe match data.
-// Falls back to local state.json for local dev.
-const STATE_FILE = process.env.STATE_FILE ||
-  path.join(path.dirname(__dirname), 'infomatrix-state.json');
+// ── PostgreSQL ────────────────────────────────────────────────
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL ||
+    'postgresql://infomatrix:infomatrix2026@localhost:5432/infomatrix',
+  max: 5,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000,
+});
 
-let gameState = null;
-try {
-  const raw = fs.readFileSync(STATE_FILE, 'utf8');
-  gameState = JSON.parse(raw);
-  console.log('[state] Loaded from state.json');
-} catch {
-  console.log('[state] No saved state, starting fresh');
+pool.on('error', (err) => console.error('[db] Pool error:', err.message));
+
+async function initDb() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS game_state (
+      id         INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+      data       JSONB       NOT NULL,
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS state_events (
+      id         BIGSERIAL PRIMARY KEY,
+      action     TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+  console.log('[db] PostgreSQL ready');
 }
 
+async function dbLoad() {
+  const res = await pool.query('SELECT data FROM game_state WHERE id = 1');
+  return res.rows.length ? res.rows[0].data : null;
+}
+
+async function dbSave(state, action = 'update') {
+  await pool.query(`
+    INSERT INTO game_state (id, data, updated_at) VALUES (1, $1, NOW())
+    ON CONFLICT (id) DO UPDATE SET data = $1, updated_at = NOW()
+  `, [state]);
+  if (action !== 'heartbeat') {
+    pool.query('INSERT INTO state_events (action) VALUES ($1)', [action]).catch(() => {});
+  }
+}
+
+// ── State ─────────────────────────────────────────────────────
+let gameState = null;
 let saveTimer = null;
-function scheduleSave() {
+
+function scheduleSave(action = 'update') {
   if (saveTimer) return;
-  saveTimer = setTimeout(() => {
+  saveTimer = setTimeout(async () => {
     saveTimer = null;
     if (!gameState) return;
     try {
-      fs.writeFileSync(STATE_FILE, JSON.stringify(gameState), 'utf8');
+      await dbSave(gameState, action);
     } catch (e) {
-      console.error('[state] Save failed:', e.message);
+      console.error('[db] Save failed:', e.message);
     }
-  }, 500); // debounce 500ms — avoid thrashing on every goal click
+  }, 300);
 }
 
 // ── Admin auth ────────────────────────────────────────────────
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'infomatrix2026';
-// Constant-time compare to prevent timing attacks
+
 function tokenValid(t) {
   try {
     return crypto.timingSafeEqual(
@@ -50,10 +81,11 @@ function tokenValid(t) {
   } catch { return false; }
 }
 
-// ── Static files ──────────────────────────────────────────────
+// ── Middleware ────────────────────────────────────────────────
+app.use(express.json({ limit: '512kb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ── Admin route: Basic Auth ───────────────────────────────────
+// ── Admin route ───────────────────────────────────────────────
 app.get('/admin', (req, res) => {
   const auth = req.headers.authorization;
   if (auth && auth.startsWith('Basic ')) {
@@ -67,39 +99,60 @@ app.get('/admin', (req, res) => {
   res.status(401).send('Authentication required');
 });
 
-// ── Display (public, read-only) ───────────────────────────────
+// ── Display ───────────────────────────────────────────────────
 app.get('/', (req, res) =>
   res.sendFile(path.join(__dirname, 'public', 'display.html'))
 );
 
-// ── State (HTTP fallback for display page) ────────────────────
+// ── State API ─────────────────────────────────────────────────
 app.get('/state', (req, res) => {
   if (!gameState) return res.status(204).end();
   res.json(gameState);
 });
 
 // ── Health ────────────────────────────────────────────────────
-app.get('/health', (req, res) => res.json({
-  status: 'ok',
-  clients: wss.clients.size,
-  hasState: !!gameState,
-  uptime: Math.floor(process.uptime()),
-}));
+app.get('/health', async (req, res) => {
+  let dbOk = false;
+  let dbLatency = null;
+  try {
+    const t0 = Date.now();
+    await pool.query('SELECT 1');
+    dbLatency = Date.now() - t0;
+    dbOk = true;
+  } catch (e) {
+    console.error('[health] DB check failed:', e.message);
+  }
+  res.json({
+    status: dbOk ? 'ok' : 'degraded',
+    db: dbOk ? `connected (${dbLatency}ms)` : 'error',
+    clients: wss.clients.size,
+    hasState: !!gameState,
+    uptime: Math.floor(process.uptime()),
+  });
+});
 
 // ── WebSocket ─────────────────────────────────────────────────
-const MAX_MSG_BYTES = 512 * 1024; // 512 KB
+const MAX_MSG_BYTES = 512 * 1024;
+
+function broadcast(msg, exclude = null) {
+  const json = JSON.stringify(msg);
+  wss.clients.forEach(client => {
+    if (client !== exclude && client.readyState === WebSocket.OPEN) {
+      client.send(json);
+    }
+  });
+}
 
 wss.on('connection', (ws, req) => {
   const ip = req.socket.remoteAddress;
-  console.log(`[ws] Connect ${ip}`);
+  console.log(`[ws] Connect ${ip} (total: ${wss.clients.size})`);
 
-  // Send current state immediately
+  // Send current state immediately on connect
   if (gameState) {
     ws.send(JSON.stringify({ type: 'state', data: gameState }));
   }
 
-  ws.on('message', (raw) => {
-    // Reject oversized payloads
+  ws.on('message', async (raw) => {
     if (raw.length > MAX_MSG_BYTES) {
       console.warn(`[ws] Oversized message (${raw.length}b) from ${ip}`);
       return;
@@ -108,19 +161,15 @@ wss.on('connection', (ws, req) => {
       const msg = JSON.parse(raw.toString());
 
       if (msg.type === 'update') {
-        // Validate token on every admin update
         if (!tokenValid(msg.token)) {
           ws.send(JSON.stringify({ type: 'error', code: 'UNAUTHORIZED' }));
           return;
         }
         gameState = msg.data;
-        scheduleSave();
-        // Broadcast to all OTHER clients (display pages)
-        wss.clients.forEach(client => {
-          if (client !== ws && client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify({ type: 'state', data: gameState }));
-          }
-        });
+        scheduleSave('update');
+        // Broadcast to ALL other clients (displays + other admin tabs)
+        broadcast({ type: 'state', data: gameState }, ws);
+
       } else if (msg.type === 'ping') {
         ws.send(JSON.stringify({ type: 'pong' }));
       }
@@ -135,10 +184,46 @@ wss.on('connection', (ws, req) => {
 
 // ── Start ─────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n⚽  INFOMATRIX-ASIA 2026 · Robot Football`);
-  console.log(`   Server:  http://0.0.0.0:${PORT}`);
-  console.log(`   Admin:   http://localhost:${PORT}/admin  (password: ${ADMIN_TOKEN})`);
-  console.log(`   Display: http://localhost:${PORT}/`);
-  console.log(`   Health:  http://localhost:${PORT}/health\n`);
-});
+
+async function main() {
+  // 1. Init DB schema
+  try {
+    await initDb();
+  } catch (e) {
+    console.error('[db] Init failed:', e.message);
+    process.exit(1);
+  }
+
+  // 2. Load state from DB
+  try {
+    gameState = await dbLoad();
+    if (gameState) {
+      console.log('[db] State loaded from PostgreSQL');
+    }
+  } catch (e) {
+    console.error('[db] Load failed:', e.message);
+  }
+
+  // 3. Migrate from old state.json if DB has no data yet
+  if (!gameState) {
+    const OLD_FILE = process.env.STATE_FILE ||
+      path.join(path.dirname(__dirname), 'infomatrix-state.json');
+    try {
+      const raw = fs.readFileSync(OLD_FILE, 'utf8');
+      gameState = JSON.parse(raw);
+      await dbSave(gameState, 'migrate_from_file');
+      console.log('[db] Migrated from state.json → PostgreSQL');
+    } catch {}
+  }
+
+  // 4. Start HTTP + WS server
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`\n⚽  INFOMATRIX-ASIA 2026 · Robot Football`);
+    console.log(`   Server:  http://0.0.0.0:${PORT}`);
+    console.log(`   Admin:   http://localhost:${PORT}/admin`);
+    console.log(`   Display: http://localhost:${PORT}/`);
+    console.log(`   Health:  http://localhost:${PORT}/health\n`);
+  });
+}
+
+main();

@@ -10,20 +10,20 @@
 @import url('https://fonts.googleapis.com/css2?family=Russo+One&family=Exo+2:wght@300;400;500;600;700&display=swap');
 
 :root {
-  --bg:      #f5faf6;
-  --bg2:     #eaf3ec;
-  --bg3:     #ddeee2;
-  --accent:  #00882c;
-  --green:   #00882c;
+  --bg:      #f0faf9;
+  --bg2:     #e0f2f1;
+  --bg3:     #b2dfdb;
+  --accent:  #00897B;
+  --green:   #00897B;
   --orange:  #d97706;
   --red:     #dc2626;
   --gold:    #b45309;
   --purple:  #7c3aed;
-  --card:    rgba(0,136,44,0.04);
-  --border:  rgba(0,136,44,0.18);
-  --border2: rgba(0,136,44,0.35);
-  --text:    #0a1f10;
-  --muted:   #527a5e;
+  --card:    rgba(0,137,123,0.04);
+  --border:  rgba(0,137,123,0.18);
+  --border2: rgba(0,137,123,0.35);
+  --text:    #0a1f1e;
+  --muted:   #4a7a75;
   --radius:  12px;
 }
 
@@ -42,8 +42,8 @@ body{
 body::before{
   content:'';position:fixed;inset:0;
   background-image:
-    linear-gradient(rgba(0,136,44,0.06) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(0,136,44,0.06) 1px,transparent 1px);
+    linear-gradient(rgba(0,137,123,0.06) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,137,123,0.06) 1px,transparent 1px);
   background-size:40px 40px;
   pointer-events:none;z-index:0;
 }
@@ -51,7 +51,7 @@ body::before{
 /* ─── HEADER ─── */
 .app-header{
   position:sticky;top:0;z-index:100;
-  background:rgba(245,250,246,0.96);
+  background:rgba(240,250,249,0.96);
   border-bottom:1px solid var(--border);
   backdrop-filter:blur(12px);
   padding:12px 20px;
@@ -92,7 +92,7 @@ body::before{
   white-space:nowrap;transition:all 0.2s;position:relative;
 }
 .nav-btn:hover{color:var(--text);background:var(--card);border-color:var(--border)}
-.nav-btn.active{color:var(--accent);background:rgba(0,136,44,0.1);border-color:rgba(0,136,44,0.3)}
+.nav-btn.active{color:var(--accent);background:rgba(0,137,123,0.1);border-color:rgba(0,137,123,0.3)}
 .badge{
   display:inline-flex;align-items:center;justify-content:center;
   min-width:18px;height:18px;padding:0 5px;
@@ -138,10 +138,10 @@ body::before{
   font-family:'Exo 2',sans-serif;font-size:13px;font-weight:600;
   cursor:pointer;transition:all 0.2s;white-space:nowrap;
 }
-.btn-primary{background:rgba(0,136,44,0.15);color:var(--accent);border:1px solid rgba(0,136,44,0.4)}
-.btn-primary:hover{background:rgba(0,136,44,0.25);box-shadow:0 0 12px rgba(0,136,44,0.2)}
-.btn-success{background:rgba(0,136,44,0.12);color:var(--green);border:1px solid rgba(0,136,44,0.35)}
-.btn-success:hover{background:rgba(0,136,44,0.22)}
+.btn-primary{background:rgba(0,137,123,0.15);color:var(--accent);border:1px solid rgba(0,137,123,0.4)}
+.btn-primary:hover{background:rgba(0,137,123,0.25);box-shadow:0 0 12px rgba(0,137,123,0.2)}
+.btn-success{background:rgba(0,137,123,0.12);color:var(--green);border:1px solid rgba(0,137,123,0.35)}
+.btn-success:hover{background:rgba(0,137,123,0.22)}
 .btn-warning{background:rgba(255,123,0,0.12);color:var(--orange);border:1px solid rgba(255,123,0,0.35)}
 .btn-warning:hover{background:rgba(255,123,0,0.22)}
 .btn-danger{background:rgba(255,59,92,0.12);color:var(--red);border:1px solid rgba(255,59,92,0.35)}
@@ -159,7 +159,7 @@ body::before{
   color:var(--text);font-family:'Exo 2',sans-serif;font-size:13px;
   outline:none;transition:border-color 0.2s;width:100%;
 }
-.input:focus,.select:focus{border-color:rgba(0,136,44,0.5)}
+.input:focus,.select:focus{border-color:rgba(0,137,123,0.5)}
 .input[type=number]{text-align:center}
 .select option{background:var(--bg3);color:var(--text)}
 
@@ -209,7 +209,7 @@ label.form-label{display:block;font-size:11px;color:var(--muted);margin-bottom:4
   display:flex;align-items:center;gap:12px;flex-wrap:wrap;
   transition:all 0.2s;
 }
-.match-card.played{border-color:rgba(0,136,44,0.2);background:rgba(0,136,44,0.03)}
+.match-card.played{border-color:rgba(0,137,123,0.2);background:rgba(0,137,123,0.03)}
 .match-card.live-active{border-color:rgba(255,59,92,0.5);background:rgba(255,59,92,0.05);animation:pulse-border 2s infinite}
 @keyframes pulse-border{0%,100%{box-shadow:0 0 0 0 rgba(255,59,92,0)}50%{box-shadow:0 0 8px 2px rgba(255,59,92,0.3)}}
 .match-num{
@@ -230,7 +230,7 @@ label.form-label{display:block;font-size:11px;color:var(--muted);margin-bottom:4
   letter-spacing:0.5px;white-space:nowrap;
 }
 .status-pending{background:rgba(100,116,139,0.2);color:var(--muted)}
-.status-played{background:rgba(0,136,44,0.15);color:var(--green)}
+.status-played{background:rgba(0,137,123,0.15);color:var(--green)}
 .status-live{background:rgba(255,59,92,0.2);color:var(--red);animation:blink 1s infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0.5}}
 .winner-arrow{color:var(--green);font-size:12px}
@@ -269,7 +269,7 @@ label.form-label{display:block;font-size:11px;color:var(--muted);margin-bottom:4
   font-family:'Russo One',sans-serif;font-size:11px;font-weight:700;
   padding:4px 14px;border-radius:20px;letter-spacing:2px;
 }
-.live-half-1{background:rgba(0,136,44,0.15);color:var(--accent);border:1px solid rgba(0,136,44,0.3)}
+.live-half-1{background:rgba(0,137,123,0.15);color:var(--accent);border:1px solid rgba(0,137,123,0.3)}
 .live-half-2{background:rgba(255,123,0,0.15);color:var(--orange);border:1px solid rgba(255,123,0,0.3)}
 .live-teams-row{display:flex;align-items:center;gap:20px;width:100%}
 .live-team-block{flex:1;text-align:center}
@@ -287,8 +287,8 @@ label.form-label{display:block;font-size:11px;color:var(--muted);margin-bottom:4
   border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;
   transition:all 0.15s;
 }
-.btn-goal-plus{background:rgba(0,136,44,0.2);color:var(--green)}
-.btn-goal-plus:hover{background:rgba(0,136,44,0.35);transform:scale(1.1)}
+.btn-goal-plus{background:rgba(0,137,123,0.2);color:var(--green)}
+.btn-goal-plus:hover{background:rgba(0,137,123,0.35);transform:scale(1.1)}
 .btn-goal-minus{background:rgba(255,59,92,0.2);color:var(--red)}
 .btn-goal-minus:hover{background:rgba(255,59,92,0.35);transform:scale(1.1)}
 
@@ -312,7 +312,7 @@ label.form-label{display:block;font-size:11px;color:var(--muted);margin-bottom:4
   border-radius:20px;border:1px solid var(--border);
   background:transparent;color:var(--muted);cursor:pointer;transition:all 0.2s;
 }
-.filter-btn.active{background:rgba(0,136,44,0.12);color:var(--accent);border-color:rgba(0,136,44,0.3)}
+.filter-btn.active{background:rgba(0,137,123,0.12);color:var(--accent);border-color:rgba(0,137,123,0.3)}
 .filter-info{font-size:11px;color:var(--muted);margin-left:auto}
 
 /* ─── JURY ─── */
@@ -363,7 +363,7 @@ label.form-label{display:block;font-size:11px;color:var(--muted);margin-bottom:4
   background:var(--card);border:1px solid var(--border);
   border-radius:8px;padding:8px 14px;font-size:12px;
 }
-.sched-item.played{border-color:rgba(0,136,44,0.15);opacity:0.7}
+.sched-item.played{border-color:rgba(0,137,123,0.15);opacity:0.7}
 .sched-num{font-family:'Russo One',sans-serif;font-size:10px;color:var(--muted);min-width:32px}
 .sched-vs{color:var(--muted);font-size:10px;padding:0 6px}
 .sched-score{font-family:'Russo One',sans-serif;font-size:11px;color:var(--accent);margin-left:auto}
@@ -451,8 +451,8 @@ label.form-label{display:block;font-size:11px;color:var(--muted);margin-bottom:4
   transition:all 0.2s;
 }
 .field-card.field-active{
-  border-color:rgba(0,136,44,0.25);
-  background:rgba(0,136,44,0.03);
+  border-color:rgba(0,137,123,0.25);
+  background:rgba(0,137,123,0.03);
 }
 .field-card.field-running{
   border-color:rgba(255,59,92,0.4);
@@ -522,7 +522,7 @@ label.form-label{display:block;font-size:11px;color:var(--muted);margin-bottom:4
 
 <!-- ═══════════ HEADER ═══════════ -->
 <header class="app-header">
-  <div class="header-logo">INFOMATRIX<span>·ASIA</span> 2026</div>
+  <div class="header-logo"><img src="/infomatrix.png" alt="INFOMATRIX ASIA" style="height:38px;object-fit:contain;display:block"></div>
   <div class="header-stats">
     <span><b id="stat-teams">12</b> команда</span>
     <span><b id="stat-total">132</b> матч</span>
@@ -1068,7 +1068,7 @@ function renderSchedule() {
       <span class="sched-num">#${m.id}</span>
       <span class="team-dot" style="background:${h(t1.color)}"></span>
       <span>${h(t1.name)}</span>
-      <span style="font-size:9px;color:var(--green);background:rgba(0,136,44,0.1);border:1px solid rgba(0,136,44,0.2);padding:1px 5px;border-radius:4px">Д</span>
+      <span style="font-size:9px;color:var(--green);background:rgba(0,137,123,0.1);border:1px solid rgba(0,137,123,0.2);padding:1px 5px;border-radius:4px">Д</span>
       <span class="sched-vs">vs</span>
       <span class="team-dot" style="background:${h(t2.color)}"></span>
       <span>${h(t2.name)}</span>
@@ -1799,6 +1799,8 @@ function syncState() {
   }
 }
 
+let _wsFirstConnect = true;
+
 function connectWS() {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   const url = `${proto}://${location.host}/ws`;
@@ -1809,7 +1811,21 @@ function connectWS() {
   ws.onopen = () => {
     document.getElementById('ws-dot').classList.add('online');
     document.getElementById('ws-label').textContent = 'LIVE';
-    syncState();
+    if (!_wsFirstConnect) {
+      // Reconnect: push local state back to server
+      syncState();
+    }
+    _wsFirstConnect = false;
+  };
+  ws.onmessage = (evt) => {
+    try {
+      const msg = JSON.parse(evt.data);
+      // Server pushes state when another admin tab makes a change
+      if (msg.type === 'state' && msg.data && _wsFirstConnect === false) {
+        applyServerState(msg.data);
+        renderAll();
+      }
+    } catch {}
   };
   ws.onclose = () => {
     document.getElementById('ws-dot').classList.remove('online');
@@ -1820,12 +1836,53 @@ function connectWS() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// INIT
+// INIT — load persisted state before rendering
 // ═══════════════════════════════════════════════════════════════
 
-buildSchedule(teams);
-renderAll();
-connectWS();
+function applyServerState(s) {
+  if (!s) return;
+  if (s.config) {
+    CONFIG = Object.assign(CONFIG, s.config);
+  }
+  if (s.teams && s.teams.length) {
+    teams = s.teams;
+    teamIdCounter = Math.max(...teams.map(t => t.id)) + 1;
+  }
+  if (s.matches && s.matches.length) {
+    matches = s.matches;
+    matchIdCounter = Math.max(...matches.map(m => m.id)) + 1;
+  }
+  if (s.fields && s.fields.length) {
+    fields = s.fields.map(f => ({
+      ...f,
+      goals: [...(f.goals || [0, 0])],
+      running: false,  // timers are local-only, never restore running state
+    }));
+  }
+}
+
+async function initApp() {
+  let serverStateApplied = false;
+  try {
+    const r = await fetch('/state');
+    if (r.ok && r.status !== 204) {
+      const data = await r.json();
+      if (data && data.teams && data.teams.length) {
+        applyServerState(data);
+        serverStateApplied = true;
+      }
+    }
+  } catch (e) {
+    console.warn('[init] Could not load server state:', e.message);
+  }
+  if (!serverStateApplied) {
+    buildSchedule(teams);
+  }
+  renderAll();
+  connectWS();
+}
+
+initApp();
 
 // Auto-sync every 5s
 setInterval(syncState, 5000);
