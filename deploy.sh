@@ -21,10 +21,12 @@ if [ -f .env ]; then
   export $(grep -v '^#' .env | grep 'AWS_' | xargs 2>/dev/null)
 fi
 
-# Fallback: hardcoded from project credentials
-export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-AKIAUWNX2GDY66AB3BLN}
-export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-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}
 export AWS_REGION=${AWS_REGION:-eu-north-1}
+
+if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
+  echo "❌ AWS credentials missing. Add to .env: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY"
+  exit 1
+fi
 
 # ── 1. Package ───────────────────────────────────────────
 echo -e "${BLUE}1/4${NC} Creating deployment package..."

@@ -676,6 +676,26 @@ label.form-label{display:block;font-size:11px;color:var(--muted);margin-bottom:4
 
 <script>
 // ═══════════════════════════════════════════════════════════════
+// SECURITY HELPERS
+// ═══════════════════════════════════════════════════════════════
+
+// XSS-safe HTML escape — use h() everywhere user data goes into innerHTML
+function h(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+
+// Admin token — read from meta tag injected by server, or default for local dev
+const ADMIN_TOKEN = (() => {
+  const m = document.querySelector('meta[name="admin-token"]');
+  return m ? m.content : 'infomatrix2026';
+})();
+
+// ═══════════════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════════
 
@@ -715,13 +735,15 @@ let matches = [];
 let matchIdCounter = 1;
 let teamIdCounter = 13;
 
-let liveMatchId   = null;
-let liveGoals     = [0, 0];
-let liveHalf      = 1;
-let liveSeconds   = 120;
-let liveRunning   = false;
-let liveInterval  = null;
-let liveFinished  = false;
+let liveMatchId      = null;
+let liveGoals        = [0, 0];
+let liveHalf         = 1;
+let liveSeconds      = 120;   // seconds left (display value, updated by tick)
+let liveRunning      = false;
+let liveInterval     = null;
+let liveFinished     = false;
+let _timerStartTs    = 0;     // Date.now() when timer last (re)started
+let _timerStartSecs  = 120;   // liveSeconds value at that moment
 
 let currentTab    = 'teams';
 let matchFilter   = 'all';
@@ -880,14 +902,14 @@ function renderTeams() {
   grid.innerHTML = teams.map(t => {
     const s = getTeamStats(t.id);
     return `
-    <div class="team-card" style="--team-color:${t.color}">
+    <div class="team-card" style="--team-color:${h(t.color)}">
       <div class="team-card-header">
         <span class="team-number">#${t.id}</span>
-        <span class="team-flag">${t.flag}</span>
-        <span class="team-name">${t.name}</span>
+        <span class="team-flag">${h(t.flag)}</span>
+        <span class="team-name">${h(t.name)}</span>
       </div>
       <div class="team-members">
-        ${t.members.filter(m=>m).map(m=>`<div>· ${m}</div>`).join('')||'<div style="color:var(--muted)">— участники не указаны —</div>'}
+        ${t.members.filter(m=>m).map(m=>`<div>· ${h(m)}</div>`).join('')||'<div style="color:var(--muted)">— участники не указаны —</div>'}
       </div>
       <div class="team-stats-row">
         <span><b>${s.pts}</b> оч</span>
@@ -915,11 +937,11 @@ function renderSchedule() {
     return `
     <div class="sched-item ${m.played?'played':''}">
       <span class="sched-num">#${m.id}</span>
-      <span class="team-dot" style="background:${t1.color}"></span>
-      <span>${t1.name}</span>
+      <span class="team-dot" style="background:${h(t1.color)}"></span>
+      <span>${h(t1.name)}</span>
       <span class="sched-vs">VS</span>
-      <span class="team-dot" style="background:${t2.color}"></span>
-      <span>${t2.name}</span>
+      <span class="team-dot" style="background:${h(t2.color)}"></span>
+      <span>${h(t2.name)}</span>
       ${m.played ? `<span class="sched-score">${m.goals1}:${m.goals2} ✓</span>` : ''}
     </div>`;
   }).join('');
@@ -935,7 +957,7 @@ function renderLive() {
       const t2 = teams.find(t=>t.id===m.team2Id);
       if (!t1||!t2) return '';
       const mark = m.played ? ` ✓ (${m.goals1}:${m.goals2})` : '';
-      return `<option value="${m.id}" ${m.id==current?'selected':''}>#${m.id}: ${t1.name} vs ${t2.name}${mark}</option>`;
+      return `<option value="${m.id}" ${m.id==current?'selected':''}>#${m.id}: ${h(t1.name)} vs ${h(t2.name)}${mark}</option>`;
     }).join('');
 }
 
@@ -962,8 +984,8 @@ function renderMatches() {
     const isLive = m.id === liveMatchId;
     let winner = '';
     if (m.played) {
-      if (m.goals1 > m.goals2) winner = `<span class="winner-arrow">◀ ${t1.name}</span>`;
-      else if (m.goals2 > m.goals1) winner = `<span class="winner-arrow">${t2.name} ▶</span>`;
+      if (m.goals1 > m.goals2) winner = `<span class="winner-arrow">◀ ${h(t1.name)}</span>`;
+      else if (m.goals2 > m.goals1) winner = `<span class="winner-arrow">${h(t2.name)} ▶</span>`;
       else winner = '<span style="color:var(--muted)">Ничья</span>';
     }
     return `
@@ -974,13 +996,13 @@ function renderMatches() {
       </span>
       <div class="match-teams">
         <div class="match-team">
-          <span class="team-dot" style="background:${t1.color}"></span>
-          <span>${t1.name}</span>
+          <span class="team-dot" style="background:${h(t1.color)}"></span>
+          <span>${h(t1.name)}</span>
         </div>
         <span class="match-vs">VS</span>
         <div class="match-team">
-          <span class="team-dot" style="background:${t2.color}"></span>
-          <span>${t2.name}</span>
+          <span class="team-dot" style="background:${h(t2.color)}"></span>
+          <span>${h(t2.name)}</span>
         </div>
       </div>
       ${m.played ? `<span class="match-score">${m.goals1}:${m.goals2}</span>` : ''}
@@ -1017,8 +1039,8 @@ function renderStandings() {
       <td><span class="pos-badge ${posClass}">${i+1}</span></td>
       <td>
         <div style="display:flex;align-items:center;gap:8px">
-          <span class="team-dot" style="background:${t.color}"></span>
-          <span style="font-size:13px">${t.flag} ${t.name}</span>
+          <span class="team-dot" style="background:${h(t.color)}"></span>
+          <span style="font-size:13px">${h(t.flag)} ${h(t.name)}</span>
         </div>
       </td>
       <td>${s.GP}</td>
@@ -1046,8 +1068,8 @@ function renderJury() {
     return `
     <div class="jury-card">
       <div class="jury-card-header">
-        <span class="team-dot" style="background:${t.color}"></span>
-        <span style="font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700">${t.flag} ${t.name}</span>
+        <span class="team-dot" style="background:${h(t.color)}"></span>
+        <span style="font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700">${h(t.flag)} ${h(t.name)}</span>
       </div>
 
       <div class="build-time-row">
@@ -1127,8 +1149,8 @@ function renderLeaderboard() {
       <td><span class="pos-badge ${i===0?'pos-1':i===1?'pos-2':i===2?'pos-3':''}">${i+1}</span></td>
       <td>
         <div style="display:flex;align-items:center;gap:8px">
-          <span class="team-dot" style="background:${t.color}"></span>
-          <span>${medal} ${t.flag} ${t.name}</span>
+          <span class="team-dot" style="background:${h(t.color)}"></span>
+          <span>${medal} ${h(t.flag)} ${h(t.name)}</span>
         </div>
       </td>
       <td style="color:var(--accent)">${gp.toFixed(1)}</td>
@@ -1240,48 +1262,42 @@ function updateLiveButtons() {
   }
 }
 
+// Shared tick — timestamp-based to prevent drift
+function _timerTick() {
+  const elapsed = Math.floor((Date.now() - _timerStartTs) / 1000);
+  liveSeconds = Math.max(0, _timerStartSecs - elapsed);
+  updateTimerDisplay();
+  updateLiveButtons();
+  syncState();
+  if (liveSeconds <= 0) {
+    stopTimer();
+    liveFinished = (liveHalf === 2);
+    if (liveHalf === 1) document.getElementById('btn-half').style.display = '';
+    updateTimerDisplay();
+    updateLiveButtons();
+  }
+}
+
 function startTimer() {
   if (!liveMatchId) return;
-  liveRunning = true;
-  liveInterval = setInterval(() => {
-    if (liveSeconds > 0) {
-      liveSeconds--;
-      updateTimerDisplay();
-      updateLiveButtons();
-    } else {
-      stopTimer();
-      liveFinished = (liveHalf === 2);
-      if (liveHalf === 1) {
-        document.getElementById('btn-half').style.display = '';
-      }
-      updateTimerDisplay();
-      updateLiveButtons();
-    }
-    syncState();
-  }, 1000);
+  _timerStartTs   = Date.now();
+  _timerStartSecs = liveSeconds;
+  liveRunning     = true;
+  liveInterval    = setInterval(_timerTick, 250); // poll every 250ms for accuracy
 }
 
 function pauseTimer() {
   liveRunning = false;
   clearInterval(liveInterval);
   updateLiveButtons();
+  syncState();
 }
 
 function resumeTimer() {
-  liveRunning = true;
-  liveInterval = setInterval(() => {
-    if (liveSeconds > 0) {
-      liveSeconds--;
-      updateTimerDisplay();
-      updateLiveButtons();
-    } else {
-      stopTimer();
-      liveFinished = (liveHalf === 2);
-      updateTimerDisplay();
-      updateLiveButtons();
-    }
-    syncState();
-  }, 1000);
+  _timerStartTs   = Date.now();
+  _timerStartSecs = liveSeconds;
+  liveRunning     = true;
+  liveInterval    = setInterval(_timerTick, 250);
 }
 
 function stopTimer() {
@@ -1319,6 +1335,8 @@ function cancelLive() {
   stopTimer();
   liveMatchId = null;
   document.getElementById('live-select').value = '';
+  syncState(); // tell display: no active match
+  renderAll();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1363,8 +1381,8 @@ function openDrawModal() {
       div.style.animationDelay = '0s';
       div.innerHTML = `
         <span class="draw-rank">${i+1}</span>
-        <span class="team-dot" style="background:${t.color}"></span>
-        <span>${t.flag} ${t.name}</span>`;
+        <span class="team-dot" style="background:${h(t.color)}"></span>
+        <span>${h(t.flag)} ${h(t.name)}</span>`;
       list.appendChild(div);
       if (i === drawNewOrder.length - 1) {
         setTimeout(() => {
@@ -1569,7 +1587,7 @@ function getStateSnapshot() {
 
 function syncState() {
   if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({ type: 'update', data: getStateSnapshot() }));
+    ws.send(JSON.stringify({ type: 'update', token: ADMIN_TOKEN, data: getStateSnapshot() }));
   }
 }
 
