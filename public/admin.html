@@ -437,6 +437,71 @@ label.form-label{display:block;font-size:11px;color:var(--muted);margin-bottom:4
   .live-timer{font-size:36px}
 }
 
+/* ─── FIELDS GRID (multi-field live) ─── */
+.fields-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+  gap:16px;
+}
+.field-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius);padding:16px;
+  transition:all 0.2s;
+}
+.field-card.field-active{
+  border-color:rgba(0,212,255,0.25);
+  background:rgba(0,212,255,0.03);
+}
+.field-card.field-running{
+  border-color:rgba(255,59,92,0.4);
+  background:rgba(255,59,92,0.04);
+  animation:pulse-border 2s infinite;
+}
+.field-header{
+  display:flex;align-items:center;gap:8px;margin-bottom:12px;
+}
+.field-label{
+  font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;
+  color:var(--accent);letter-spacing:2px;
+}
+.field-scoreboard{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:6px;margin:12px 0;
+}
+.field-team-block{
+  flex:1;min-width:0;
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+}
+.field-team-name{
+  font-family:'Orbitron',sans-serif;font-size:10px;font-weight:700;
+  text-align:center;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  max-width:100%;
+}
+.field-score-center{
+  display:flex;align-items:center;gap:6px;flex-shrink:0;
+}
+.field-goal-wrap{
+  display:flex;align-items:center;gap:4px;
+}
+.field-goal{
+  font-family:'Orbitron',sans-serif;font-size:36px;font-weight:900;
+  min-width:44px;text-align:center;line-height:1;
+}
+.field-sep{
+  font-family:'Orbitron',sans-serif;font-size:24px;color:var(--muted);
+}
+.field-timer{
+  font-family:'Orbitron',sans-serif;font-size:26px;font-weight:700;
+  letter-spacing:3px;text-align:center;margin:8px 0 6px;
+}
+.field-controls{
+  display:flex;gap:5px;flex-wrap:wrap;
+}
+.field-no-match{
+  text-align:center;padding:20px 0;color:var(--muted);font-size:12px;
+}
+
 /* ─── MISC ─── */
 .divider-label{
   font-size:10px;color:var(--muted);text-transform:uppercase;
@@ -505,49 +570,13 @@ label.form-label{display:block;font-size:11px;color:var(--muted);margin-bottom:4
     <div id="schedule-list" class="schedule-list"></div>
   </div>
 
-  <!-- ── TAB 3: LIVE МАТЧ ── -->
+  <!-- ── TAB 3: LIVE ПОЛЯ ── -->
   <div id="tab-live" class="tab-panel">
-    <div class="section-title">Live матч</div>
-    <div class="live-container">
-      <div style="width:100%;max-width:700px">
-        <label class="form-label">Выберите матч</label>
-        <select id="live-select" class="select" onchange="selectLiveMatch(this.value)" style="max-width:500px">
-          <option value="">— Выберите матч —</option>
-        </select>
-      </div>
-
-      <div id="live-scoreboard" class="live-scoreboard">
-        <div id="live-half-badge" class="live-half-badge live-half-1">ТАЙМ 1</div>
-        <div class="live-teams-row">
-          <div class="live-team-block">
-            <div id="live-t1-name" class="live-team-name" style="color:var(--accent)">—</div>
-            <div class="live-goal-btns">
-              <button class="btn-goal btn-goal-minus" onclick="changeGoal(0,-1)">−</button>
-              <div id="live-g1" class="goal-count">0</div>
-              <button class="btn-goal btn-goal-plus" onclick="changeGoal(0,1)">+</button>
-            </div>
-          </div>
-          <div class="live-divider">VS</div>
-          <div class="live-team-block">
-            <div id="live-t2-name" class="live-team-name" style="color:var(--green)">—</div>
-            <div class="live-goal-btns">
-              <button class="btn-goal btn-goal-minus" onclick="changeGoal(1,-1)">−</button>
-              <div id="live-g2" class="goal-count">0</div>
-              <button class="btn-goal btn-goal-plus" onclick="changeGoal(1,1)">+</button>
-            </div>
-          </div>
-        </div>
-        <div id="live-timer" class="live-timer timer-paused">2:00</div>
-        <div class="live-controls">
-          <button id="btn-start" class="btn btn-success" onclick="startTimer()">▶ Старт</button>
-          <button id="btn-pause" class="btn btn-warning" onclick="pauseTimer()" style="display:none">⏸ Пауза</button>
-          <button id="btn-resume" class="btn btn-primary" onclick="resumeTimer()" style="display:none">▶ Продолжить</button>
-          <button id="btn-half" class="btn btn-warning" onclick="nextHalf()" style="display:none">→ Тайм 2</button>
-          <button class="btn btn-success" onclick="saveLiveResult()">✓ Сохранить</button>
-          <button class="btn btn-ghost" onclick="cancelLive()">✕ Отмена</button>
-        </div>
-      </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+      <div class="section-title" style="margin-bottom:0;flex:1">🔴 Live — Поля</div>
+      <span style="font-size:11px;color:var(--muted)" id="live-active-count">0 активных матчей</span>
     </div>
+    <div id="fields-grid" class="fields-grid"></div>
   </div>
 
   <!-- ── TAB 4: МАТЧИ ── -->
@@ -735,15 +764,22 @@ let matches = [];
 let matchIdCounter = 1;
 let teamIdCounter = 13;
 
-let liveMatchId      = null;
-let liveGoals        = [0, 0];
-let liveHalf         = 1;
-let liveSeconds      = 120;   // seconds left (display value, updated by tick)
-let liveRunning      = false;
-let liveInterval     = null;
-let liveFinished     = false;
-let _timerStartTs    = 0;     // Date.now() when timer last (re)started
-let _timerStartSecs  = 120;   // liveSeconds value at that moment
+// ── Multi-field state (4 simultaneous matches) ──────────────
+const NUM_FIELDS = 4;
+
+let fields = Array.from({length: NUM_FIELDS}, (_, i) => ({
+  id:       i + 1,
+  matchId:  null,
+  goals:    [0, 0],
+  half:     1,
+  seconds:  120,
+  running:  false,
+  finished: false,
+}));
+
+// Timer handles — not serialized, local only
+// { [fieldId]: { intervalId, startTs, startSecs } }
+const fieldTimers = {};
 
 let currentTab    = 'teams';
 let matchFilter   = 'all';
@@ -947,18 +983,99 @@ function renderSchedule() {
   }).join('');
 }
 
-// ─── TAB 3: LIVE ───
+// ─── TAB 3: LIVE (multi-field) ───
 function renderLive() {
-  const sel = document.getElementById('live-select');
-  const current = sel.value;
-  sel.innerHTML = '<option value="">— Выберите матч —</option>' +
-    [...matches].sort((a,b)=>a.order-b.order).map(m => {
-      const t1 = teams.find(t=>t.id===m.team1Id);
-      const t2 = teams.find(t=>t.id===m.team2Id);
-      if (!t1||!t2) return '';
-      const mark = m.played ? ` ✓ (${m.goals1}:${m.goals2})` : '';
-      return `<option value="${m.id}" ${m.id==current?'selected':''}>#${m.id}: ${h(t1.name)} vs ${h(t2.name)}${mark}</option>`;
+  const grid = document.getElementById('fields-grid');
+  if (!grid) return;
+
+  const activeCount = fields.filter(f => f.matchId).length;
+  const el = document.getElementById('live-active-count');
+  if (el) el.textContent = `${activeCount} активных ${activeCount===1?'матч':'матчей'}`;
+
+  // Track which matchIds are already assigned
+  const usedIds = new Set(fields.map(f => f.matchId).filter(Boolean));
+
+  // Sorted match list for dropdowns
+  const sortedMatches = [...matches].sort((a,b) => a.order - b.order);
+
+  grid.innerHTML = fields.map(f => {
+    const m  = f.matchId ? matches.find(x => x.id === f.matchId) : null;
+    const t1 = m ? teams.find(t => t.id === m.team1Id) : null;
+    const t2 = m ? teams.find(t => t.id === m.team2Id) : null;
+
+    const mm = Math.floor(f.seconds / 60);
+    const ss = f.seconds % 60;
+    const timerStr  = `${mm}:${ss.toString().padStart(2,'0')}`;
+    const timerCls  = f.finished ? 'timer-stopped' : f.running ? 'timer-running' : 'timer-paused';
+
+    const cardCls = f.running ? 'field-running' : f.matchId ? 'field-active' : '';
+
+    const opts = sortedMatches.map(mx => {
+      const mx1 = teams.find(t => t.id === mx.team1Id);
+      const mx2 = teams.find(t => t.id === mx.team2Id);
+      if (!mx1 || !mx2) return '';
+      let note = '';
+      if (mx.played) note = ' ✓';
+      else if (usedIds.has(mx.id) && mx.id !== f.matchId) note = ' [другое поле]';
+      return `<option value="${mx.id}" ${mx.id===f.matchId?'selected':''}>#${mx.id}: ${h(mx1.name)} vs ${h(mx2.name)}${note}</option>`;
     }).join('');
+
+    return `
+    <div class="field-card ${cardCls}">
+      <div class="field-header">
+        <span class="field-label">ПОЛЕ ${f.id}</span>
+        ${f.matchId ? `<span class="live-half-badge live-half-${f.half}" style="font-size:9px;padding:2px 10px">ТАЙМ ${f.half}</span>` : ''}
+        ${f.running ? '<span class="status-live status-pill" style="font-size:9px">🔴 LIVE</span>' : ''}
+      </div>
+
+      <select class="select" style="font-size:11px;margin-bottom:10px"
+        onchange="selectFieldMatch(${f.id}, this.value)">
+        <option value="">— Выберите матч —</option>
+        ${opts}
+      </select>
+
+      ${f.matchId ? `
+      <div class="field-scoreboard">
+        <div class="field-team-block">
+          <span class="team-dot" style="background:${h(t1?.color||'#888')};margin-bottom:2px"></span>
+          <span class="field-team-name" style="color:${h(t1?.color||'var(--accent)')}">${h(t1?.flag||'')} ${h(t1?.name||'—')}</span>
+          <div class="field-goal-wrap" style="margin-top:6px">
+            <button class="btn-goal btn-goal-minus" onclick="fieldGoal(${f.id},0,-1)">−</button>
+            <span class="field-goal" id="fg-${f.id}-0" style="color:${h(t1?.color||'var(--accent)')}">${f.goals[0]}</span>
+            <button class="btn-goal btn-goal-plus" onclick="fieldGoal(${f.id},0,1)">+</button>
+          </div>
+        </div>
+        <span class="field-sep">:</span>
+        <div class="field-team-block">
+          <span class="team-dot" style="background:${h(t2?.color||'#888')};margin-bottom:2px"></span>
+          <span class="field-team-name" style="color:${h(t2?.color||'var(--green)')}">${h(t2?.flag||'')} ${h(t2?.name||'—')}</span>
+          <div class="field-goal-wrap" style="margin-top:6px">
+            <button class="btn-goal btn-goal-minus" onclick="fieldGoal(${f.id},1,-1)">−</button>
+            <span class="field-goal" id="fg-${f.id}-1" style="color:${h(t2?.color||'var(--green)')}">${f.goals[1]}</span>
+            <button class="btn-goal btn-goal-plus" onclick="fieldGoal(${f.id},1,1)">+</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="field-timer ${timerCls}" id="ftimer-${f.id}">${timerStr}</div>
+
+      <div class="field-controls">
+        ${!f.running && !f.finished && f.seconds===120 && f.half===1
+          ? `<button class="btn btn-success btn-sm" onclick="fieldStart(${f.id})">▶ Старт</button>` : ''}
+        ${!f.running && !f.finished && !(f.seconds===120 && f.half===1)
+          ? `<button class="btn btn-primary btn-sm" onclick="fieldResume(${f.id})">▶ Продолжить</button>` : ''}
+        ${f.running
+          ? `<button class="btn btn-warning btn-sm" onclick="fieldPause(${f.id})">⏸ Пауза</button>` : ''}
+        ${!f.running && f.seconds===0 && f.half===1
+          ? `<button class="btn btn-warning btn-sm" onclick="fieldNextHalf(${f.id})">→ Тайм 2</button>` : ''}
+        ${f.finished
+          ? `<span style="font-size:11px;color:var(--green)">✓ Матч завершён</span>` : ''}
+        <button class="btn btn-success btn-sm" onclick="fieldSave(${f.id})">✓ Сохр.</button>
+        <button class="btn btn-ghost btn-sm" onclick="fieldCancel(${f.id})">✕</button>
+      </div>
+      ` : `<div class="field-no-match">⚽ Матч не назначен</div>`}
+    </div>`;
+  }).join('');
 }
 
 // ─── TAB 4: MATCHES ───
@@ -981,7 +1098,7 @@ function renderMatches() {
     const t1 = teams.find(t=>t.id===m.team1Id);
     const t2 = teams.find(t=>t.id===m.team2Id);
     if (!t1||!t2) return '';
-    const isLive = m.id === liveMatchId;
+    const isLive = fields.some(f => f.matchId === m.id);
     let winner = '';
     if (m.played) {
       if (m.goals1 > m.goals2) winner = `<span class="winner-arrow">◀ ${h(t1.name)}</span>`;
@@ -1201,142 +1318,123 @@ function setFilter(f, btn) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// LIVE MATCH
+// MULTI-FIELD LIVE
 // ═══════════════════════════════════════════════════════════════
 
-function selectLiveMatch(val) {
-  if (!val) return;
-  const id = parseInt(val);
-  const m = matches.find(x=>x.id===id);
-  if (!m) return;
-  stopTimer();
-  liveMatchId = id;
-  liveGoals = [m.played?m.goals1:0, m.played?m.goals2:0];
-  liveHalf = 1;
-  liveSeconds = 120;
-  liveRunning = false;
-  liveFinished = false;
-  updateLiveDisplay();
-}
-
-function updateLiveDisplay() {
-  const m = matches.find(x=>x.id===liveMatchId);
-  if (!m) return;
-  const t1 = teams.find(t=>t.id===m.team1Id);
-  const t2 = teams.find(t=>t.id===m.team2Id);
-  document.getElementById('live-t1-name').textContent = t1 ? `${t1.flag} ${t1.name}` : '—';
-  document.getElementById('live-t2-name').textContent = t2 ? `${t2.flag} ${t2.name}` : '—';
-  document.getElementById('live-g1').textContent = liveGoals[0];
-  document.getElementById('live-g2').textContent = liveGoals[1];
-  document.getElementById('live-half-badge').textContent = `ТАЙМ ${liveHalf}`;
-  document.getElementById('live-half-badge').className = `live-half-badge live-half-${liveHalf}`;
-  updateTimerDisplay();
-  updateLiveButtons();
-}
-
-function updateTimerDisplay() {
-  const el = document.getElementById('live-timer');
-  const m = Math.floor(liveSeconds / 60);
-  const s = liveSeconds % 60;
-  el.textContent = `${m}:${s.toString().padStart(2,'0')}`;
-  if (liveFinished) { el.className = 'live-timer timer-stopped'; }
-  else if (liveRunning) { el.className = 'live-timer timer-running'; }
-  else { el.className = 'live-timer timer-paused'; }
-}
-
-function updateLiveButtons() {
-  const s = document.getElementById('btn-start');
-  const p = document.getElementById('btn-pause');
-  const r = document.getElementById('btn-resume');
-  const h = document.getElementById('btn-half');
-  if (liveFinished) {
-    s.style.display='none'; p.style.display='none'; r.style.display='none'; h.style.display='none';
-  } else if (!liveRunning && liveSeconds === 120) {
-    s.style.display=''; p.style.display='none'; r.style.display='none'; h.style.display='none';
-  } else if (liveRunning) {
-    s.style.display='none'; p.style.display=''; r.style.display='none';
-    h.style.display = (liveHalf===1 && liveSeconds===0) ? '' : 'none';
+function selectFieldMatch(fieldId, val) {
+  const f = fields.find(x => x.id === fieldId);
+  if (!f) return;
+  _fieldStopTimer(fieldId);
+  if (!val) {
+    f.matchId = null; f.goals = [0,0]; f.half = 1;
+    f.seconds = 120; f.running = false; f.finished = false;
   } else {
-    s.style.display='none'; p.style.display='none'; r.style.display='';
-    h.style.display = (liveHalf===1 && liveSeconds===0) ? '' : 'none';
+    const id = parseInt(val);
+    const m = matches.find(x => x.id === id);
+    if (!m) return;
+    f.matchId  = id;
+    f.goals    = [m.played ? m.goals1 : 0, m.played ? m.goals2 : 0];
+    f.half     = 1; f.seconds = 120; f.running = false; f.finished = false;
   }
-}
-
-// Shared tick — timestamp-based to prevent drift
-function _timerTick() {
-  const elapsed = Math.floor((Date.now() - _timerStartTs) / 1000);
-  liveSeconds = Math.max(0, _timerStartSecs - elapsed);
-  updateTimerDisplay();
-  updateLiveButtons();
-  syncState();
-  if (liveSeconds <= 0) {
-    stopTimer();
-    liveFinished = (liveHalf === 2);
-    if (liveHalf === 1) document.getElementById('btn-half').style.display = '';
-    updateTimerDisplay();
-    updateLiveButtons();
-  }
-}
-
-function startTimer() {
-  if (!liveMatchId) return;
-  _timerStartTs   = Date.now();
-  _timerStartSecs = liveSeconds;
-  liveRunning     = true;
-  liveInterval    = setInterval(_timerTick, 250); // poll every 250ms for accuracy
-}
-
-function pauseTimer() {
-  liveRunning = false;
-  clearInterval(liveInterval);
-  updateLiveButtons();
+  renderLive();
   syncState();
 }
 
-function resumeTimer() {
-  _timerStartTs   = Date.now();
-  _timerStartSecs = liveSeconds;
-  liveRunning     = true;
-  liveInterval    = setInterval(_timerTick, 250);
-}
-
-function stopTimer() {
-  liveRunning = false;
-  clearInterval(liveInterval);
-}
-
-function nextHalf() {
-  if (liveHalf === 1) {
-    liveHalf = 2;
-    liveSeconds = 120;
-    liveRunning = false;
-    liveFinished = false;
-    document.getElementById('btn-half').style.display = 'none';
-    document.getElementById('btn-start').style.display = '';
-    updateLiveDisplay();
-  }
-}
-
-function changeGoal(teamIdx, delta) {
-  liveGoals[teamIdx] = Math.max(0, liveGoals[teamIdx] + delta);
-  document.getElementById(`live-g${teamIdx+1}`).textContent = liveGoals[teamIdx];
+function fieldGoal(fieldId, teamIdx, delta) {
+  const f = fields.find(x => x.id === fieldId);
+  if (!f) return;
+  f.goals[teamIdx] = Math.max(0, f.goals[teamIdx] + delta);
+  const el = document.getElementById(`fg-${fieldId}-${teamIdx}`);
+  if (el) el.textContent = f.goals[teamIdx];
   syncState();
 }
 
-function saveLiveResult() {
-  if (!liveMatchId) return;
-  const m = matches.find(x=>x.id===liveMatchId);
-  if (m) { m.goals1=liveGoals[0]; m.goals2=liveGoals[1]; m.played=true; }
-  stopTimer();
+function _fieldStopTimer(fieldId) {
+  const t = fieldTimers[fieldId];
+  if (t) { clearInterval(t.intervalId); delete fieldTimers[fieldId]; }
+  const f = fields.find(x => x.id === fieldId);
+  if (f) f.running = false;
+}
+
+function _fieldTick(fieldId) {
+  const f = fields.find(x => x.id === fieldId);
+  const t = fieldTimers[fieldId];
+  if (!f || !t) return;
+  const elapsed = Math.floor((Date.now() - t.startTs) / 1000);
+  f.seconds = Math.max(0, t.startSecs - elapsed);
+  // Lightweight: update only timer element (no full re-render on every tick)
+  const el = document.getElementById(`ftimer-${fieldId}`);
+  if (el) {
+    const mm = Math.floor(f.seconds / 60);
+    const ss = f.seconds % 60;
+    el.textContent = `${mm}:${ss.toString().padStart(2,'0')}`;
+    el.className = 'field-timer timer-running';
+  }
+  syncState();
+  if (f.seconds <= 0) {
+    _fieldStopTimer(fieldId);
+    if (f.half === 2) f.finished = true;
+    renderLive(); // re-render to show correct buttons
+    syncState();
+  }
+}
+
+function fieldStart(fieldId) {
+  const f = fields.find(x => x.id === fieldId);
+  if (!f || !f.matchId) return;
+  const t = { startTs: Date.now(), startSecs: f.seconds };
+  t.intervalId = setInterval(() => _fieldTick(fieldId), 250);
+  fieldTimers[fieldId] = t;
+  f.running = true;
+  renderLive();
+  syncState();
+}
+
+function fieldPause(fieldId) {
+  _fieldStopTimer(fieldId);
+  renderLive();
+  syncState();
+}
+
+function fieldResume(fieldId) {
+  const f = fields.find(x => x.id === fieldId);
+  if (!f) return;
+  const t = { startTs: Date.now(), startSecs: f.seconds };
+  t.intervalId = setInterval(() => _fieldTick(fieldId), 250);
+  fieldTimers[fieldId] = t;
+  f.running = true;
+  renderLive();
+  syncState();
+}
+
+function fieldNextHalf(fieldId) {
+  const f = fields.find(x => x.id === fieldId);
+  if (!f || f.half !== 1) return;
+  f.half = 2; f.seconds = 120; f.running = false; f.finished = false;
+  renderLive();
+  syncState();
+}
+
+function fieldSave(fieldId) {
+  const f = fields.find(x => x.id === fieldId);
+  if (!f || !f.matchId) return;
+  const m = matches.find(x => x.id === f.matchId);
+  if (m) { m.goals1 = f.goals[0]; m.goals2 = f.goals[1]; m.played = true; }
+  _fieldStopTimer(fieldId);
+  f.matchId = null; f.goals = [0,0]; f.half = 1;
+  f.seconds = 120; f.running = false; f.finished = false;
   renderAll();
 }
 
-function cancelLive() {
-  stopTimer();
-  liveMatchId = null;
-  document.getElementById('live-select').value = '';
-  syncState(); // tell display: no active match
-  renderAll();
+function fieldCancel(fieldId) {
+  _fieldStopTimer(fieldId);
+  const f = fields.find(x => x.id === fieldId);
+  if (f) {
+    f.matchId = null; f.goals = [0,0]; f.half = 1;
+    f.seconds = 120; f.running = false; f.finished = false;
+  }
+  renderLive();
+  syncState();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1573,14 +1671,9 @@ function updateBuildTime(teamId, val) {
 
 function getStateSnapshot() {
   return {
-    teams: teams.map(t => ({ ...t })),
+    teams:   teams.map(t => ({ ...t })),
     matches: matches.map(m => ({ ...m })),
-    liveMatchId,
-    liveGoals: [...liveGoals],
-    liveHalf,
-    liveSeconds,
-    liveRunning,
-    liveFinished,
+    fields:  fields.map(f => ({ ...f, goals: [...f.goals] })),
     ts: Date.now()
   };
 }
