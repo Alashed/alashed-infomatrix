@@ -10,7 +10,10 @@ const server = http.createServer(app);
 const wss    = new WebSocket.Server({ server, path: '/ws' });
 
 // ── Persistence ──────────────────────────────────────────────
-const STATE_FILE = path.join(__dirname, 'state.json');
+// Stored OUTSIDE the app directory so deploys never wipe match data.
+// Falls back to local state.json for local dev.
+const STATE_FILE = process.env.STATE_FILE ||
+  path.join(path.dirname(__dirname), 'infomatrix-state.json');
 
 let gameState = null;
 try {

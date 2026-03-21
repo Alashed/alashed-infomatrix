@@ -48,7 +48,7 @@ jobs:
               'sudo -u ubuntu bash -c \"rm -rf /home/ubuntu/infomatrix.old; mv /home/ubuntu/infomatrix /home/ubuntu/infomatrix.old 2>/dev/null || true; mkdir -p /home/ubuntu/infomatrix\"',
               'sudo -u ubuntu bash -c \"tar -xzf /tmp/infomatrix.tar.gz -C /home/ubuntu/infomatrix\"',
               'sudo -u ubuntu bash -c \"cd /home/ubuntu/infomatrix && npm install --production --silent\"',
-              'printf \"PORT=7000\nNODE_ENV=production\nADMIN_TOKEN=${ADMIN_TOKEN}\n\" | sudo -u ubuntu tee /home/ubuntu/infomatrix/.env > /dev/null',
+              'printf \"PORT=7000\nNODE_ENV=production\nADMIN_TOKEN=${ADMIN_TOKEN}\nSTATE_FILE=/home/ubuntu/infomatrix-state.json\n\" | sudo -u ubuntu tee /home/ubuntu/infomatrix/.env > /dev/null',
               'sudo systemctl restart infomatrix',
               'sleep 4 && sudo systemctl is-active infomatrix && echo OK'
             ]" \

@@ -64,7 +64,7 @@ CMD1=$(aws ssm send-command \
     'sudo -u ubuntu bash -c \"rm -rf ${APP_DIR}.old; mv ${APP_DIR} ${APP_DIR}.old 2>/dev/null || true; mkdir -p ${APP_DIR}\"',
     'sudo -u ubuntu bash -c \"tar -xzf /tmp/infomatrix.tar.gz -C ${APP_DIR}\"',
     'sudo -u ubuntu bash -c \"cd ${APP_DIR} && npm install --production --silent\"',
-    'printf \"PORT=${PORT}\\nNODE_ENV=production\\nADMIN_TOKEN=${ADMIN_TOKEN}\\n\" | sudo -u ubuntu tee ${APP_DIR}/.env > /dev/null',
+    'printf \"PORT=${PORT}\\nNODE_ENV=production\\nADMIN_TOKEN=${ADMIN_TOKEN}\\nSTATE_FILE=/home/ubuntu/infomatrix-state.json\\n\" | sudo -u ubuntu tee ${APP_DIR}/.env > /dev/null',
     'sudo bash -c \"cat > /etc/systemd/system/infomatrix.service << \\\"SVCEOF\\\"
 [Unit]
 Description=INFOMATRIX Robot Football Judge
