@@ -15,7 +15,7 @@ AWS_REGION=eu-north-1
 S3_BUCKET=alashed-media
 APP_NAME=alashed-infomatrix
 APP_DIR=/home/ubuntu/infomatrix
-PORT=4000
+PORT=7000
 DOMAIN=infomatrix.alashed.kz
 EMAIL=admin@alashed.kz
 
