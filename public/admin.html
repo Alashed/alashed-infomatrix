@@ -1104,10 +1104,10 @@ function renderLive() {
       const mx1 = teams.find(t => t.id === mx.team1Id);
       const mx2 = teams.find(t => t.id === mx.team2Id);
       if (!mx1 || !mx2) return '';
-      let note = '';
-      if (mx.played) note = ' [ойналды]';
-      else if (usedIds.has(mx.id) && mx.id !== f.matchId) note = ' [басқа алаң]';
-      return `<option value="${mx.id}" ${mx.id===f.matchId?'selected':''}>#${mx.id}: ${h(mx1.name)} (Д) vs ${h(mx2.name)} (Г)${note}</option>`;
+      // Hide played and matches assigned to other fields (keep current selection)
+      if (mx.played && mx.id !== f.matchId) return '';
+      if (usedIds.has(mx.id) && mx.id !== f.matchId) return '';
+      return `<option value="${mx.id}" ${mx.id===f.matchId?'selected':''}>#${mx.id}: ${h(mx1.name)} (Д) vs ${h(mx2.name)} (Г)</option>`;
     }).join('');
 
     return `
