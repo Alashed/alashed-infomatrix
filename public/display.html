@@ -263,6 +263,94 @@ body::before{
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+/* ═══════════════════════════════════════════
+   MOBILE / PORTRAIT ADAPTATION
+═══════════════════════════════════════════ */
+
+@media(max-width:768px){
+  /* Allow vertical scrolling — content is taller than screen */
+  html,body{overflow:auto;height:auto;min-height:100vh}
+
+  /* Layout: topbar + stacked content */
+  .layout{height:auto;min-height:100vh;grid-template-rows:auto auto}
+
+  /* Content stacks: fields on top, standings below */
+  .content{
+    grid-template-columns:1fr;
+    grid-template-rows:auto auto;
+    overflow:visible;
+  }
+
+  /* Fields panel */
+  .panel-fields{padding:10px;overflow:visible}
+  .fields-display{
+    flex:none;
+    align-items:unset;
+    gap:8px;
+  }
+  /* All field count variants → single column on mobile */
+  .fields-display.count-2,
+  .fields-display.count-3,
+  .fields-display.count-4{
+    grid-template-columns:1fr;
+    grid-template-rows:auto;
+  }
+  .field-box{min-height:180px;padding:12px 14px}
+
+  /* Standings panel: lose left border, get top border */
+  .panel-stand{
+    border-left:none;
+    border-top:1px solid var(--border);
+    overflow:visible;
+    padding:10px 0 16px;
+  }
+  .stand-scroll{overflow:visible;max-height:none}
+
+  /* Topbar compact */
+  .topbar{padding:8px 14px;gap:8px}
+  .topbar-info{font-size:9px;letter-spacing:0.5px;text-align:center}
+
+  /* Banner overlay: full-width minus margin */
+  #banner-overlay{
+    min-width:0;
+    width:calc(100vw - 32px);
+    padding:20px 24px;
+    box-sizing:border-box;
+  }
+
+  /* Larger touch-friendly score numbers */
+  .score-num{font-size:clamp(36px,10vw,64px)}
+  .timer-disp{font-size:clamp(20px,5vw,36px)}
+}
+
+@media(max-width:480px){
+  .topbar-info{display:none}
+  .topbar-logo img{height:26px}
+  .topbar{padding:7px 12px}
+
+  .panel-fields{padding:8px}
+  .field-box{min-height:160px;padding:10px 12px;gap:6px}
+
+  /* Bigger team name, smaller members text */
+  .team-name-disp{font-size:clamp(10px,3.5vw,15px)}
+  .team-members-disp{font-size:clamp(8px,2.5vw,11px)}
+
+  .score-num{font-size:clamp(32px,12vw,56px)}
+  .score-sep-d{font-size:clamp(16px,6vw,28px)}
+  .timer-disp{font-size:clamp(18px,5.5vw,30px)}
+
+  .half-pill,.live-pill{font-size:8px;padding:2px 6px}
+  .field-num-badge{font-size:8px}
+
+  .stand-table th,.stand-table td{padding:5px 6px;font-size:10px}
+  .name-c{font-size:10px}
+
+  /* Banner overlay */
+  #banner-overlay{padding:16px 18px}
+  .banner-icon{font-size:36px}
+  .banner-sub{font-size:12px}
+}
 </style>
 </head>
 <body>
