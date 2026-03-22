@@ -872,20 +872,18 @@ let selectedColor = TEAM_COLORS[0];
 // SCHEDULE BUILDING
 // ═══════════════════════════════════════════════════════════════
 
-// Double round-robin: every ordered pair (home → away) plays once.
-// team1Id = home team, team2Id = away team.
+// Single round-robin: every pair plays once.
 function buildSchedule(teamsList) {
   matches = [];
   matchIdCounter = 1;
   const n = teamsList.length;
   for (let i = 0; i < n; i++) {
-    for (let j = 0; j < n; j++) {
-      if (i === j) continue;
+    for (let j = i + 1; j < n; j++) {
       matches.push({
         id: matchIdCounter,
         order: matchIdCounter,
-        team1Id: teamsList[i].id,   // home
-        team2Id: teamsList[j].id,   // away
+        team1Id: teamsList[i].id,
+        team2Id: teamsList[j].id,
         goals1: null, goals2: null, played: false
       });
       matchIdCounter++;
@@ -896,14 +894,8 @@ function buildSchedule(teamsList) {
 function addTeamToSchedule(newTeam) {
   const existing = teams.filter(t => t.id !== newTeam.id);
   existing.forEach(t => {
-    // newTeam at home vs existing away
     matches.push({ id: matchIdCounter, order: matchIdCounter,
       team1Id: newTeam.id, team2Id: t.id,
-      goals1: null, goals2: null, played: false });
-    matchIdCounter++;
-    // existing at home vs newTeam away
-    matches.push({ id: matchIdCounter, order: matchIdCounter,
-      team1Id: t.id, team2Id: newTeam.id,
       goals1: null, goals2: null, played: false });
     matchIdCounter++;
   });
@@ -934,8 +926,8 @@ function getTeamStats(teamId) {
 
 function getGamePoints(teamId) {
   const s = getTeamStats(teamId);
-  // Double round-robin: each team plays 2*(n-1) games
-  const maxPossible = (teams.length - 1) * 2 * CONFIG.winPoints;
+  // Single round-robin: each team plays (n-1) games
+  const maxPossible = (teams.length - 1) * CONFIG.winPoints;
   if (!maxPossible) return 0;
   return Math.round((s.pts / maxPossible) * CONFIG.gamePointsMax * 10) / 10;
 }
