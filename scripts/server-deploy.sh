@@ -4,6 +4,7 @@ set -e
 APP_DIR=/home/ubuntu/infomatrix
 
 cd "$APP_DIR"
+chown -R ubuntu:ubuntu "$APP_DIR"
 sudo -u ubuntu git clean -fd
 sudo -u ubuntu git pull origin main
 sudo -u ubuntu npm install --production --silent
