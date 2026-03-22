@@ -13,25 +13,13 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: eu-north-1
-          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
-          DB_URL_B64=$(echo -n "${DATABASE_URL}" | base64 -w0)
-
           CMD=$(aws ssm send-command \
             --instance-ids "i-08eb56616ddb569bc" \
             --document-name "AWS-RunShellScript" \
             --region eu-north-1 \
             --comment "infomatrix-autodeploy" \
-            --parameters "commands=[
-              'sudo -u ubuntu git -C /home/ubuntu/infomatrix pull origin main',
-              'sudo -u ubuntu bash -c "cd /home/ubuntu/infomatrix && npm install --production --silent"',
-              'printf \"PORT=7000\nNODE_ENV=production\nADMIN_TOKEN=${ADMIN_TOKEN}\n\" | sudo tee /home/ubuntu/infomatrix/.env > /dev/null',
-              'echo ${DB_URL_B64} | base64 -d | xargs -I{} sudo sh -c \"echo DATABASE_URL=\\\"{}\\\" >> /home/ubuntu/infomatrix/.env\"',
-              'sudo systemctl reset-failed infomatrix 2>/dev/null || true',
-              'sudo systemctl restart infomatrix',
-              'sleep 10 && sudo systemctl is-active infomatrix && echo OK'
-            ]" \
+            --parameters '{"commands":["bash /home/ubuntu/infomatrix/scripts/server-deploy.sh"]}' \
             --output text --query "Command.CommandId")
 
           echo "SSM Command: $CMD"
@@ -49,14 +37,7 @@ jobs:
             --region eu-north-1 \
             --query "StandardOutputContent" --output text)
 
-          ERR=$(aws ssm get-command-invocation \
-            --command-id "$CMD" \
-            --instance-id "i-08eb56616ddb569bc" \
-            --region eu-north-1 \
-            --query "StandardErrorContent" --output text)
-
           echo "$OUT"
-          echo "$ERR"
 
           if [ "$STATUS" != "Success" ]; then
             echo "Deploy failed with status: $STATUS"
