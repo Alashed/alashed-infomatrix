@@ -1903,7 +1903,15 @@ function getStateSnapshot() {
     config:  { ...CONFIG },
     teams:   teams.map(t => ({ ...t })),
     matches: matches.map(m => ({ ...m })),
-    fields:  fields.map(f => ({ ...f, goals: [...f.goals] })),
+    // For running timers, embed start anchor so display can compute exact time
+    fields:  fields.map(f => {
+      const snap = { ...f, goals: [...f.goals] };
+      if (f.running && !f.finished) {
+        const t = fieldTimers[f.id];
+        if (t) { snap._startTs = t.startTs; snap._startSecs = t.startSecs; }
+      }
+      return snap;
+    }),
     ts: Date.now()
   };
 }

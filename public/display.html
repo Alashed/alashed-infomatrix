@@ -139,6 +139,25 @@ body::before{
 .name-c{display:flex;align-items:center;gap:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .dot-s{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
 
+/* ─── STANDINGS ROW ANIMATIONS ─── */
+@keyframes stand-rise{
+  0%  {background:rgba(0,200,100,0.28)}
+  100%{background:transparent}
+}
+@keyframes stand-drop{
+  0%  {background:rgba(220,38,38,0.18)}
+  100%{background:transparent}
+}
+@keyframes pts-pop{
+  0%  {transform:scale(1);   color:var(--accent)}
+  35% {transform:scale(1.6); color:#00ff88}
+  65% {transform:scale(0.9)}
+  100%{transform:scale(1);   color:var(--accent)}
+}
+.row-risen td {animation:stand-rise 1.2s ease-out;}
+.row-dropped td{animation:stand-drop 1.2s ease-out;}
+.pts-pop{display:inline-block;animation:pts-pop 0.7s cubic-bezier(0.36,0.07,0.19,0.97);}
+
 /* ═══════════════════════════════════════════
    ANIMATION OVERLAYS
 ═══════════════════════════════════════════ */
@@ -590,12 +609,21 @@ function render(s) {
 }
 
 // Local smooth timer
+// Uses _startTs/_startSecs anchor when available (most accurate),
+// falls back to elapsed-since-received for older clients.
 setInterval(() => {
   if (!lastState) return;
-  const elapsed = (Date.now() - lastStateTs) / 1000;
+  const fallbackElapsed = (Date.now() - lastStateTs) / 1000;
   (lastState.fields || []).forEach(f => {
     if (!f.running || f.finished) return;
-    const secs = Math.max(0, f.seconds - elapsed);
+    let secs;
+    if (f._startTs && f._startSecs != null) {
+      // Anchor-based: accurate regardless of when display connected
+      secs = Math.max(0, f._startSecs - (Date.now() - f._startTs) / 1000);
+    } else {
+      // Fallback: subtract elapsed since state was received
+      secs = Math.max(0, f.seconds - fallbackElapsed);
+    }
     const el = document.getElementById(`lt-${f.id}`);
     if (!el) return;
     const mm = Math.floor(secs / 60);
@@ -657,6 +685,10 @@ function renderFields(s, elapsedSec) {
   }).join('');
 }
 
+// Track standings for animations
+let prevStandOrder = [];  // [teamId, ...]
+let prevStandPts   = {};  // teamId → pts
+
 function renderStandings(s) {
   const tbody = document.getElementById('stand-body');
   const sorted = [...s.teams].sort((a,b) => {
@@ -666,11 +698,23 @@ function renderStandings(s) {
     if (sb.GD!==sa.GD)   return sb.GD-sa.GD;
     return sb.GF-sa.GF;
   });
+
   tbody.innerHTML = sorted.map((t,i) => {
     const st = teamStats(s.teams,s.matches,t.id,s.config);
     const pc = i===0?'p1':i===1?'p2':i===2?'p3':'';
+
+    // Position change animation
+    const prevPos = prevStandOrder.indexOf(t.id);
+    let rowCls = '';
+    if (prevStandOrder.length > 0 && prevPos !== -1 && prevPos !== i) {
+      rowCls = prevPos > i ? 'row-risen' : 'row-dropped';
+    }
+
+    // Points pop animation
+    const ptsCls = (prevStandPts[t.id] != null && prevStandPts[t.id] !== st.pts) ? 'pts-pop' : '';
+
     return `
-    <tr>
+    <tr class="${rowCls}">
       <td><span class="pos-c ${pc}">${i+1}</span></td>
       <td><div class="name-c">
         <span class="dot-s" style="background:${esc(t.color)}"></span>
@@ -680,9 +724,15 @@ function renderStandings(s) {
       <td style="color:var(--muted)">${st.D}</td>
       <td style="color:var(--red)">${st.L}</td>
       <td>${st.GF}</td><td>${st.GA}</td>
-      <td class="pts-c">${st.pts}</td>
+      <td><span class="pts-c ${ptsCls}">${st.pts}</span></td>
     </tr>`;
   }).join('');
+
+  // Save for next comparison
+  prevStandOrder = sorted.map(t => t.id);
+  sorted.forEach(t => {
+    prevStandPts[t.id] = teamStats(s.teams, s.matches, t.id, s.config).pts;
+  });
 }
 
 // ─── HTTP FALLBACK ───
