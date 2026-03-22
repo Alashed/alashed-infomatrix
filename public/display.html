@@ -271,7 +271,7 @@ body::before{
   <!-- TOP BAR -->
   <div class="topbar">
     <div class="topbar-logo"><img src="/infomatrix.png" alt="INFOMATRIX ASIA" style="height:32px;object-fit:contain;display:block"></div>
-    <div class="topbar-info">РОБОТ ФУТБОЛЫ · 2×ROUND-ROBIN · 12 КОМАНДА</div>
+    <div class="topbar-info">РОБОТ ФУТБОЛЫ · ЕКІ АЙНАЛЫМДЫҚ · 12 КОМАНДА</div>
     <div class="ws-ind">
       <div class="ws-dot" id="ws-dot"></div>
       <span id="ws-lbl">OFFLINE</span>
@@ -294,7 +294,7 @@ body::before{
             <tr>
               <th>#</th><th>Команда</th>
               <th>Ж</th><th>Т</th><th>Жл</th>
-              <th>ДГ</th><th>ЖГ</th><th>Ұп</th>
+              <th>КГ</th><th>ЖГ</th><th>Ұп</th>
             </tr>
           </thead>
           <tbody id="stand-body">
@@ -462,7 +462,7 @@ function detectEvents(s) {
 
       // Half-time (half changed 1→2)
       if (prev.half === 1 && f.half === 2) {
-        showBanner('halftime', '🔄', 'ЖАРТЫ УАҚЫТ', `АЛАҢ ${f.id} · 2-ТАЙМ БАСТАЛАДЫ`, 3000);
+        showBanner('halftime', '🔄', 'АРА ҮЗІЛІС', `АЛАҢ ${f.id} · ЕКІНШІ ТАЙМ БАСТАЛАДЫ`, 3000);
       }
 
       // Match end
@@ -472,7 +472,7 @@ function detectEvents(s) {
         const winner = g0f > g1f ? t1?.name : g1f > g0f ? t2?.name : null;
         const sub = winner
           ? `ЖЕҢІМПАЗ: ${winner.toUpperCase()}`
-          : 'ТЕҢ';
+          : 'ТЕҢ ОЙЫН';
         showBanner('end', '🏆', 'МАТЧ АЯҚТАЛДЫ', `${g0f} : ${g1f} · ${sub}`, 4000);
       }
     }
