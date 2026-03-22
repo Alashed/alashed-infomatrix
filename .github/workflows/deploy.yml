@@ -50,13 +50,14 @@ jobs:
               'sudo -u ubuntu bash -c \"tar -xzf /tmp/infomatrix.tar.gz -C /home/ubuntu/infomatrix\"',
               'sudo -u ubuntu bash -c \"cd /home/ubuntu/infomatrix && npm install --production --silent\"',
               'printf \"PORT=7000\\nNODE_ENV=production\\nADMIN_TOKEN=${ADMIN_TOKEN}\\nDATABASE_URL=${DATABASE_URL}\\n\" | sudo tee /home/ubuntu/infomatrix/.env > /dev/null',
+              'sudo systemctl reset-failed infomatrix 2>/dev/null || true',
               'sudo systemctl restart infomatrix',
-              'sleep 4 && sudo systemctl is-active infomatrix && echo OK'
+              'sleep 15 && sudo systemctl is-active infomatrix && echo OK'
             ]" \
             --output text --query "Command.CommandId")
 
           echo "SSM Command: $CMD"
-          sleep 30
+          sleep 60
 
           STATUS=$(aws ssm get-command-invocation \
             --command-id "$CMD" \
