@@ -1521,6 +1521,7 @@ function fieldSave(fieldId) {
   f.matchId = null; f.goals = [0,0]; f.half = 1;
   f.seconds = CONFIG.halfDuration; f.running = false; f.finished = false;
   renderAll();
+  syncState();
 }
 
 function fieldCancel(fieldId) {
