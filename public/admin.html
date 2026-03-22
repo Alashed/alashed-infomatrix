@@ -861,7 +861,9 @@ let fields = Array.from({length: CONFIG.numFields}, (_, i) => ({
 // { [fieldId]: { intervalId, startTs, startSecs } }
 const fieldTimers = {};
 
-let currentTab    = 'teams';
+const VALID_TABS = ['teams','schedule','live','matches','standings','jury','leaderboard','settings'];
+const hashTab = location.hash.replace('#','');
+let currentTab = VALID_TABS.includes(hashTab) ? hashTab : 'teams';
 let matchFilter   = 'all';
 let drawNewOrder  = null;
 let editingTeamId = null;
@@ -992,6 +994,7 @@ function updateHeaderStats() {
 
 function showTab(tab) {
   currentTab = tab;
+  location.hash = tab;
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + tab).classList.add('active');
@@ -1885,7 +1888,12 @@ async function initApp() {
   connectWS();
 }
 
-initApp();
+initApp().then(() => { if (currentTab !== 'teams') showTab(currentTab); });
+
+window.addEventListener('hashchange', () => {
+  const t = location.hash.replace('#','');
+  if (VALID_TABS.includes(t) && t !== currentTab) showTab(t);
+});
 
 // Auto-sync every 5s
 setInterval(syncState, 5000);
