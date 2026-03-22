@@ -430,15 +430,29 @@ label.form-label{display:block;font-size:11px;color:var(--muted);margin-bottom:4
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
 ::-webkit-scrollbar-thumb:hover{background:var(--muted)}
 
-/* ─── RESPONSIVE ─── */
+/* ─── SCHEDULE ITEM ─── */
+/* needs wrap so long names don't overflow */
+.sched-item{flex-wrap:wrap}
+
+/* ─── TEAM STATS ─── */
+.team-stats-row{flex-wrap:wrap}
+
+/* ─── RESPONSIVE: ≤ 768px ─── */
 @media(max-width:768px){
+  /* Fix desktop nav top: header = 12px pad × 2 + 38px img + 1px border = 63px */
+  .app-nav{top:63px}
+
+  /* Hide nav scrollbar but keep scroll */
+  .app-nav{scrollbar-width:none;-ms-overflow-style:none}
+  .app-nav::-webkit-scrollbar{display:none}
+
   /* Header */
-  .app-header{padding:10px 14px;gap:8px}
+  .app-header{padding:10px 14px;gap:10px}
   .header-stats{gap:10px;font-size:11px}
 
-  /* Nav — keep sticky, adjust top for smaller header */
-  .app-nav{top:54px;padding:6px 10px;gap:3px}
-  .nav-btn{padding:7px 11px;font-size:10px;letter-spacing:0.5px}
+  /* Nav */
+  .app-nav{padding:6px 10px;gap:3px}
+  .nav-btn{padding:8px 12px;font-size:10px;letter-spacing:0.5px}
 
   /* Main */
   .app-main{padding:14px}
@@ -450,59 +464,72 @@ label.form-label{display:block;font-size:11px;color:var(--muted);margin-bottom:4
   .jury-grid{grid-template-columns:1fr}
   .teams-grid{grid-template-columns:1fr}
 
-  /* Match cards */
-  .match-card{flex-wrap:wrap;gap:8px}
-  .match-teams{min-width:0;width:100%;flex:unset}
-  .match-inputs{width:100%;justify-content:flex-end}
-  .match-score{min-width:auto}
+  /* Match card — ordered layout on wrap:
+     row 1: num + status + score (pushed right)
+     row 2: teams (full width)
+     row 3: winner + inputs (full width) */
+  .match-card{flex-wrap:wrap;gap:8px;align-items:center}
+  .match-num{order:1}
+  .status-pill{order:2}
+  .match-score{order:3;margin-left:auto;min-width:auto}
+  .match-teams{order:4;width:100%;min-width:0;flex:unset}
+  .winner-arrow{order:5}
+  .match-inputs{order:6;width:100%;justify-content:flex-end}
 
-  /* Tables — horizontal scroll */
-  .standings-table,.lb-table{
-    display:block;overflow-x:auto;
-    -webkit-overflow-scrolling:touch;white-space:nowrap;
-  }
-
-  /* Live scoreboard (legacy) */
-  .live-scoreboard{padding:16px}
-  .goal-count{font-size:40px}
-  .live-timer{font-size:36px}
+  /* Goal buttons — min 44×44 touch target */
+  .btn-goal{width:44px;height:44px;font-size:18px}
 
   /* Field cards */
   .field-goal{font-size:28px;min-width:36px}
   .field-timer{font-size:20px;letter-spacing:2px}
   .field-controls{gap:4px}
 
+  /* Prevent iOS from zooming on input focus (font-size must be ≥ 16px) */
+  .input,.select,.match-inputs input{font-size:16px}
+
   /* Modal */
   .modal{margin:0 12px;max-width:calc(100% - 24px);padding:18px}
   .color-picker-grid{grid-template-columns:repeat(6,1fr)}
 
-  /* Schedule */
+  /* Schedule controls */
   .schedule-controls{gap:6px}
+
+  /* Live scoreboard (legacy) */
+  .live-scoreboard{padding:16px}
+  .goal-count{font-size:40px}
+  .live-timer{font-size:36px}
 }
 
+/* ─── RESPONSIVE: ≤ 480px ─── */
 @media(max-width:480px){
-  /* Header — hide verbose stats, keep essentials */
-  .app-header{padding:8px 12px}
+  /* Header: shrink logo, hide less-critical stats */
+  .app-header{padding:8px 12px;gap:8px}
   .header-logo img{height:30px}
+  /* header = 8px × 2 + 30px img + 1px border = 47px */
+  .app-nav{top:47px}
   .stat-hide-mobile{display:none}
   .header-stats{gap:8px;font-size:10px}
-  .app-nav{top:48px}
 
   /* Main */
   .app-main{padding:10px}
   .section-title{font-size:14px;margin-bottom:14px}
 
-  /* Buttons — bigger touch targets */
-  .btn{padding:9px 14px;font-size:12px}
-  .btn-sm{padding:7px 10px;font-size:11px}
+  /* Nav — still big enough to tap */
   .nav-btn{padding:8px 10px;font-size:10px}
 
+  /* Buttons */
+  .btn{padding:9px 14px;font-size:12px}
+  .btn-sm{padding:7px 10px;font-size:11px}
+  .btn-icon{padding:7px 9px}
+
   /* Field cards */
-  .field-goal{font-size:24px;min-width:30px}
-  .field-timer{font-size:18px}
-  .field-team-name{font-size:9px}
   .field-card{padding:12px}
-  .field-controls .btn-sm{padding:6px 8px;font-size:10px}
+  .field-team-name{font-size:9px}
+  .field-goal{font-size:24px;min-width:30px}
+  .field-timer{font-size:18px;letter-spacing:1px}
+  /* Make field control buttons wrap cleanly */
+  .field-controls{gap:4px}
+  .field-controls .btn-sm{padding:6px 9px;font-size:10px}
 
   /* Match card */
   .match-num{min-width:24px}
@@ -512,15 +539,15 @@ label.form-label{display:block;font-size:11px;color:var(--muted);margin-bottom:4
   .jury-card{padding:12px}
   .criterion-input{width:56px}
 
+  /* Filter */
+  .filter-row{gap:6px}
+  .filter-info{width:100%;margin-left:0;margin-top:4px}
+
   /* Modal */
   .modal{padding:14px}
   .modal-title{font-size:14px}
   .color-picker-grid{grid-template-columns:repeat(5,1fr)}
   .color-swatch{width:28px;height:28px}
-
-  /* Filter */
-  .filter-row{gap:6px}
-  .filter-info{width:100%;margin-left:0;margin-top:4px}
 }
 
 /* ─── FIELDS GRID (multi-field live) ─── */
