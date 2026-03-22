@@ -24,8 +24,8 @@ jobs:
             --region eu-north-1 \
             --comment "infomatrix-autodeploy" \
             --parameters "commands=[
-              'cd /home/ubuntu/infomatrix && git pull origin main',
-              'cd /home/ubuntu/infomatrix && npm install --production --silent',
+              'sudo -u ubuntu git -C /home/ubuntu/infomatrix pull origin main',
+              'sudo -u ubuntu bash -c "cd /home/ubuntu/infomatrix && npm install --production --silent"',
               'printf \"PORT=7000\nNODE_ENV=production\nADMIN_TOKEN=${ADMIN_TOKEN}\n\" | sudo tee /home/ubuntu/infomatrix/.env > /dev/null',
               'echo ${DB_URL_B64} | base64 -d | xargs -I{} sudo sh -c \"echo DATABASE_URL=\\\"{}\\\" >> /home/ubuntu/infomatrix/.env\"',
               'sudo systemctl reset-failed infomatrix 2>/dev/null || true',
