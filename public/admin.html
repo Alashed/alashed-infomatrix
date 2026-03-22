@@ -432,11 +432,95 @@ label.form-label{display:block;font-size:11px;color:var(--muted);margin-bottom:4
 
 /* ─── RESPONSIVE ─── */
 @media(max-width:768px){
+  /* Header */
+  .app-header{padding:10px 14px;gap:8px}
+  .header-stats{gap:10px;font-size:11px}
+
+  /* Nav — keep sticky, adjust top for smaller header */
+  .app-nav{top:54px;padding:6px 10px;gap:3px}
+  .nav-btn{padding:7px 11px;font-size:10px;letter-spacing:0.5px}
+
+  /* Main */
+  .app-main{padding:14px}
+  .section-title{font-size:16px}
+
+  /* Grids */
   .grid-2,.grid-3{grid-template-columns:1fr}
-  .match-card{flex-wrap:wrap}
+  .fields-grid{grid-template-columns:1fr}
+  .jury-grid{grid-template-columns:1fr}
+  .teams-grid{grid-template-columns:1fr}
+
+  /* Match cards */
+  .match-card{flex-wrap:wrap;gap:8px}
+  .match-teams{min-width:0;width:100%;flex:unset}
+  .match-inputs{width:100%;justify-content:flex-end}
+  .match-score{min-width:auto}
+
+  /* Tables — horizontal scroll */
+  .standings-table,.lb-table{
+    display:block;overflow-x:auto;
+    -webkit-overflow-scrolling:touch;white-space:nowrap;
+  }
+
+  /* Live scoreboard (legacy) */
   .live-scoreboard{padding:16px}
   .goal-count{font-size:40px}
   .live-timer{font-size:36px}
+
+  /* Field cards */
+  .field-goal{font-size:28px;min-width:36px}
+  .field-timer{font-size:20px;letter-spacing:2px}
+  .field-controls{gap:4px}
+
+  /* Modal */
+  .modal{margin:0 12px;max-width:calc(100% - 24px);padding:18px}
+  .color-picker-grid{grid-template-columns:repeat(6,1fr)}
+
+  /* Schedule */
+  .schedule-controls{gap:6px}
+}
+
+@media(max-width:480px){
+  /* Header — hide verbose stats, keep essentials */
+  .app-header{padding:8px 12px}
+  .header-logo img{height:30px}
+  .stat-hide-mobile{display:none}
+  .header-stats{gap:8px;font-size:10px}
+  .app-nav{top:48px}
+
+  /* Main */
+  .app-main{padding:10px}
+  .section-title{font-size:14px;margin-bottom:14px}
+
+  /* Buttons — bigger touch targets */
+  .btn{padding:9px 14px;font-size:12px}
+  .btn-sm{padding:7px 10px;font-size:11px}
+  .nav-btn{padding:8px 10px;font-size:10px}
+
+  /* Field cards */
+  .field-goal{font-size:24px;min-width:30px}
+  .field-timer{font-size:18px}
+  .field-team-name{font-size:9px}
+  .field-card{padding:12px}
+  .field-controls .btn-sm{padding:6px 8px;font-size:10px}
+
+  /* Match card */
+  .match-num{min-width:24px}
+  .match-inputs input{width:44px;padding:5px}
+
+  /* Jury */
+  .jury-card{padding:12px}
+  .criterion-input{width:56px}
+
+  /* Modal */
+  .modal{padding:14px}
+  .modal-title{font-size:14px}
+  .color-picker-grid{grid-template-columns:repeat(5,1fr)}
+  .color-swatch{width:28px;height:28px}
+
+  /* Filter */
+  .filter-row{gap:6px}
+  .filter-info{width:100%;margin-left:0;margin-top:4px}
 }
 
 /* ─── FIELDS GRID (multi-field live) ─── */
@@ -524,11 +608,11 @@ label.form-label{display:block;font-size:11px;color:var(--muted);margin-bottom:4
 <header class="app-header">
   <div class="header-logo"><img src="/infomatrix.png" alt="INFOMATRIX ASIA" style="height:38px;object-fit:contain;display:block"></div>
   <div class="header-stats">
-    <span><b id="stat-teams">12</b> команда</span>
-    <span><b id="stat-total">132</b> матч</span>
+    <span class="stat-hide-mobile"><b id="stat-teams">12</b> команда</span>
+    <span class="stat-hide-mobile"><b id="stat-total">132</b> матч</span>
     <span><b id="stat-played">0</b> ойналды</span>
     <span><b id="stat-left">132</b> қалды</span>
-    <span>2×Round-Robin</span>
+    <span class="stat-hide-mobile">2×Round-Robin</span>
   </div>
   <div style="display:flex;align-items:center;gap:6px;margin-left:8px">
     <span class="ws-dot" id="ws-dot"></span>
