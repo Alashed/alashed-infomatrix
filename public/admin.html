@@ -1382,12 +1382,14 @@ function saveMatchScore(matchId) {
   const m = matches.find(x=>x.id===matchId);
   if (m) { m.goals1=g1; m.goals2=g2; m.played=true; }
   renderAll();
+  syncState();
 }
 
 function resetMatch(matchId) {
   const m = matches.find(x=>x.id===matchId);
   if (m) { m.played=false; m.goals1=null; m.goals2=null; }
   renderAll();
+  syncState();
 }
 
 function clearMatch(matchId) {
