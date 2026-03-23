@@ -639,7 +639,7 @@ label.form-label{display:block;font-size:11px;color:var(--muted);margin-bottom:4
     <span class="stat-hide-mobile"><b id="stat-total">132</b> матч</span>
     <span><b id="stat-played">0</b> ойналды</span>
     <span><b id="stat-left">132</b> қалды</span>
-    <span class="stat-hide-mobile">2×Round-Robin</span>
+    <span class="stat-hide-mobile" id="stat-schedule-type">2×Round-Robin</span>
   </div>
   <div style="display:flex;align-items:center;gap:6px;margin-left:8px">
     <span class="ws-dot" id="ws-dot"></span>
@@ -708,17 +708,28 @@ label.form-label{display:block;font-size:11px;color:var(--muted);margin-bottom:4
   <!-- ── TAB 5: ТАБЛИЦА ── -->
   <div id="tab-standings" class="tab-panel">
     <div class="section-title">Турнирлік кесте</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">* Әр тайм жеке есептеледі (Ж/Т/Жл — тайм бойынша)</div>
     <div class="card" style="overflow-x:auto">
       <table class="standings-table">
         <thead>
           <tr>
             <th>#</th><th style="text-align:left">Команда</th>
-            <th>О</th><th>Ж</th><th>Т</th><th>Жл</th>
-            <th>КГ</th><th>ЖГ</th><th>ГА</th><th>Ұп</th>
+            <th title="Ойналған таймдар саны">Т.саны</th>
+            <th title="Жеңіс (тайм бойынша)">Ж</th>
+            <th title="Тең (тайм бойынша)">Т</th>
+            <th title="Жеңіліс (тайм бойынша)">Жл</th>
+            <th title="Кіргізілген голдар">КГ</th>
+            <th title="Жіберілген голдар">ЖГ</th>
+            <th title="Голдар айырмасы (КГ − ЖГ)">ГА</th>
+            <th title="Жалпы ұпай">Ұп</th>
           </tr>
         </thead>
         <tbody id="standings-body"></tbody>
       </table>
+    </div>
+    <div class="section-title" style="margin-top:24px">Матч нәтижелері (тайм бойынша)</div>
+    <div class="card" style="overflow-x:auto">
+      <div id="standings-detail"></div>
     </div>
   </div>
 
@@ -734,6 +745,13 @@ label.form-label{display:block;font-size:11px;color:var(--muted);margin-bottom:4
     <div class="grid-2" style="gap:20px;margin-bottom:20px">
       <div class="card">
         <div style="font-family:'Russo One',sans-serif;font-size:12px;color:var(--accent);margin-bottom:16px;letter-spacing:1px">ОЙЫ ФОРМАТЫ</div>
+        <div class="form-row">
+          <label class="form-label">Кесте форматы</label>
+          <select class="input" style="width:200px" id="cfg-scheduleType" onchange="setScheduleType(this.value)">
+            <option value="single">Single (бір кездесу)</option>
+            <option value="double">Double (екі кездесу)</option>
+          </select>
+        </div>
         <div class="form-row">
           <label class="form-label">Бір мезгілде алаңдар</label>
           <input type="number" class="input" style="width:100px" min="1" max="8" id="cfg-numFields"
@@ -900,6 +918,7 @@ let CONFIG = {
   numFields:          4,
   halfDuration:       120,   // seconds per half
   numHalves:          2,
+  scheduleType:       'double', // 'single' or 'double' round-robin
   winPoints:          3,
   drawPoints:         1,
   gamePointsMax:      40,
@@ -961,6 +980,7 @@ let fields = Array.from({length: CONFIG.numFields}, (_, i) => ({
   id:       i + 1,
   matchId:  null,
   goals:    [0, 0],
+  halfGoals: [],   // [{goals1, goals2}, ...] — completed halves
   half:     1,
   seconds:  CONFIG.halfDuration,
   running:  false,
@@ -984,22 +1004,27 @@ let selectedColor = TEAM_COLORS[0];
 // SCHEDULE BUILDING
 // ═══════════════════════════════════════════════════════════════
 
-// Double round-robin: every pair plays twice (home & away).
+// Round-robin schedule: single (one match per pair) or double (home & away).
 function buildSchedule(teamsList) {
   matches = [];
   matchIdCounter = 1;
   const n = teamsList.length;
   for (let i = 0; i < n; i++) {
-    for (let j = 0; j < n; j++) {
-      if (i === j) continue;
+    for (let j = i + 1; j < n; j++) {
       matches.push({
-        id: matchIdCounter,
-        order: matchIdCounter,
-        team1Id: teamsList[i].id,
-        team2Id: teamsList[j].id,
-        goals1: null, goals2: null, played: false
+        id: matchIdCounter, order: matchIdCounter,
+        team1Id: teamsList[i].id, team2Id: teamsList[j].id,
+        goals1: null, goals2: null, halfScores: [], played: false
       });
       matchIdCounter++;
+      if (CONFIG.scheduleType === 'double') {
+        matches.push({
+          id: matchIdCounter, order: matchIdCounter,
+          team1Id: teamsList[j].id, team2Id: teamsList[i].id,
+          goals1: null, goals2: null, halfScores: [], played: false
+        });
+        matchIdCounter++;
+      }
     }
   }
 }
@@ -1009,12 +1034,14 @@ function addTeamToSchedule(newTeam) {
   existing.forEach(t => {
     matches.push({ id: matchIdCounter, order: matchIdCounter,
       team1Id: newTeam.id, team2Id: t.id,
-      goals1: null, goals2: null, played: false });
+      goals1: null, goals2: null, halfScores: [], played: false });
     matchIdCounter++;
-    matches.push({ id: matchIdCounter, order: matchIdCounter,
-      team1Id: t.id, team2Id: newTeam.id,
-      goals1: null, goals2: null, played: false });
-    matchIdCounter++;
+    if (CONFIG.scheduleType === 'double') {
+      matches.push({ id: matchIdCounter, order: matchIdCounter,
+        team1Id: t.id, team2Id: newTeam.id,
+        goals1: null, goals2: null, halfScores: [], played: false });
+      matchIdCounter++;
+    }
   });
 }
 
@@ -1022,29 +1049,34 @@ function addTeamToSchedule(newTeam) {
 // STATS
 // ═══════════════════════════════════════════════════════════════
 
+// Stats are calculated per half — each half is scored independently
 function getTeamStats(teamId) {
   let W=0,D=0,L=0,GF=0,GA=0,pts=0;
   matches.forEach(m => {
     if (!m.played) return;
-    if (m.team1Id === teamId) {
-      GF += m.goals1; GA += m.goals2;
-      if (m.goals1 > m.goals2) {W++;pts+=CONFIG.winPoints;}
-      else if (m.goals1 === m.goals2) {D++;pts+=CONFIG.drawPoints;}
-      else L++;
-    } else if (m.team2Id === teamId) {
-      GF += m.goals2; GA += m.goals1;
-      if (m.goals2 > m.goals1) {W++;pts+=CONFIG.winPoints;}
-      else if (m.goals1 === m.goals2) {D++;pts+=CONFIG.drawPoints;}
-      else L++;
-    }
+    const halves = m.halfScores && m.halfScores.length ? m.halfScores : [{goals1: m.goals1, goals2: m.goals2}];
+    halves.forEach(hs => {
+      if (m.team1Id === teamId) {
+        GF += hs.goals1; GA += hs.goals2;
+        if (hs.goals1 > hs.goals2) {W++;pts+=CONFIG.winPoints;}
+        else if (hs.goals1 === hs.goals2) {D++;pts+=CONFIG.drawPoints;}
+        else L++;
+      } else if (m.team2Id === teamId) {
+        GF += hs.goals2; GA += hs.goals1;
+        if (hs.goals2 > hs.goals1) {W++;pts+=CONFIG.winPoints;}
+        else if (hs.goals1 === hs.goals2) {D++;pts+=CONFIG.drawPoints;}
+        else L++;
+      }
+    });
   });
   return {W,D,L,GF,GA,GD:GF-GA,pts,GP:W+D+L};
 }
 
 function getGamePoints(teamId) {
   const s = getTeamStats(teamId);
-  // Double round-robin: each team plays 2*(n-1) games
-  const maxPossible = (teams.length - 1) * 2 * CONFIG.winPoints;
+  // Each match has numHalves halves, each half scored independently
+  const gamesPerTeam = CONFIG.scheduleType === 'double' ? (teams.length - 1) * 2 : (teams.length - 1);
+  const maxPossible = gamesPerTeam * CONFIG.numHalves * CONFIG.winPoints;
   if (!maxPossible) return 0;
   return Math.round((s.pts / maxPossible) * CONFIG.gamePointsMax * 10) / 10;
 }
@@ -1092,6 +1124,7 @@ function updateHeaderStats() {
   document.getElementById('stat-total').textContent = matches.length;
   document.getElementById('stat-played').textContent = played;
   document.getElementById('stat-left').textContent = matches.length - played;
+  document.getElementById('stat-schedule-type').textContent = CONFIG.scheduleType === 'single' ? '1×Round-Robin' : '2×Round-Robin';
   const pending = matches.filter(m => !m.played).length;
   const badge = document.getElementById('badge-matches');
   if (pending > 0) { badge.textContent = pending; badge.style.display = ''; }
@@ -1257,17 +1290,20 @@ function renderLive() {
         </div>
       </div>
 
+      ${f.halfGoals.length ? `<div style="font-size:10px;color:var(--muted);margin:2px 0">${f.halfGoals.map((hg,i) => `${i+1}T: ${hg.goals1}:${hg.goals2}`).join(' · ')}</div>` : ''}
       <div class="field-timer ${timerCls}" id="ftimer-${f.id}">${timerStr}</div>
 
       <div class="field-controls">
         ${!f.running && !f.finished && f.seconds===CONFIG.halfDuration && f.half===1
           ? `<button class="btn btn-success btn-sm" onclick="fieldStart(${f.id})">${ic('play')} Бастау</button>` : ''}
-        ${!f.running && !f.finished && !(f.seconds===CONFIG.halfDuration && f.half===1)
+        ${!f.running && !f.finished && f.seconds > 0 && !(f.seconds===CONFIG.halfDuration && f.half===1)
           ? `<button class="btn btn-primary btn-sm" onclick="fieldResume(${f.id})">${ic('play')} Жалғастыру</button>` : ''}
         ${f.running
           ? `<button class="btn btn-warning btn-sm" onclick="fieldPause(${f.id})">${ic('pause')} Үзіліс</button>` : ''}
-        ${!f.running && f.seconds===0 && f.half===1
-          ? `<button class="btn btn-warning btn-sm" onclick="fieldNextHalf(${f.id})">${ic('next')} 2-тайм</button>` : ''}
+        ${f.running || (!f.finished && f.seconds > 0 && f.seconds < CONFIG.halfDuration)
+          ? `<button class="btn btn-danger btn-sm" onclick="fieldEndHalf(${f.id})">${ic('stop')} Аяқтау</button>` : ''}
+        ${!f.running && f.seconds===0 && f.half < CONFIG.numHalves
+          ? `<button class="btn btn-warning btn-sm" onclick="fieldNextHalf(${f.id})">${ic('next')} ${f.half+1}-тайм</button>` : ''}
         ${f.finished
           ? `<span style="font-size:11px;color:var(--green)">${ic('checkmark-circle-02')} Матч аяқталды</span>` : ''}
         <button class="btn btn-success btn-sm" onclick="fieldSave(${f.id})">${ic('checkmark-circle-02')} Сақт.</button>
@@ -1300,10 +1336,20 @@ function renderMatches() {
     if (!t1||!t2) return '';
     const isLive = fields.some(f => f.matchId === m.id);
     let winner = '';
+    let halfInfo = '';
     if (m.played) {
       if (m.goals1 > m.goals2) winner = `<span class="winner-arrow">◀ ${h(t1.name)}</span>`;
       else if (m.goals2 > m.goals1) winner = `<span class="winner-arrow">${h(t2.name)} ▶</span>`;
       else winner = '<span style="color:var(--muted)">Тең</span>';
+      // Per-half scores
+      const halves = m.halfScores && m.halfScores.length ? m.halfScores : [{goals1: m.goals1, goals2: m.goals2}];
+      if (halves.length > 1) {
+        halfInfo = `<div style="font-size:10px;color:var(--muted);margin-top:2px">` +
+          halves.map((hs, i) => {
+            const clr = hs.goals1 > hs.goals2 ? 'var(--green)' : hs.goals2 > hs.goals1 ? 'var(--red)' : 'var(--muted)';
+            return `<span style="color:${clr}">${i+1}T: ${hs.goals1}:${hs.goals2}</span>`;
+          }).join(' &nbsp;·&nbsp; ') + `</div>`;
+      }
     }
     return `
     <div class="match-card ${m.played?'played':''} ${isLive?'live-active':''}">
@@ -1324,7 +1370,7 @@ function renderMatches() {
           <span style="font-size:9px;color:var(--orange);margin-left:3px">(Г)</span>
         </div>
       </div>
-      ${m.played ? `<span class="match-score">${m.goals1}:${m.goals2}</span>` : ''}
+      ${m.played ? `<div style="text-align:center"><span class="match-score">${m.goals1}:${m.goals2}</span>${halfInfo}</div>` : ''}
       ${m.played ? winner : ''}
       <div class="match-inputs" style="margin-left:auto">
         ${m.played ? `
@@ -1350,6 +1396,7 @@ function renderStandings() {
     if (sb.GD !== sa.GD) return sb.GD - sa.GD;
     return sb.GF - sa.GF;
   });
+  // Note: all data rendered via h() which escapes HTML, so innerHTML is safe here
   tbody.innerHTML = sorted.map((t,i) => {
     const s = getTeamStats(t.id);
     const posClass = i===0?'pos-1':i===1?'pos-2':i===2?'pos-3':'';
@@ -1372,6 +1419,72 @@ function renderStandings() {
       <td style="font-family:'Russo One',sans-serif;font-weight:700;color:var(--accent)">${s.pts}</td>
     </tr>`;
   }).join('');
+
+  renderStandingsDetail(sorted);
+}
+
+function renderStandingsDetail(sorted) {
+  const detail = document.getElementById('standings-detail');
+  if (!detail) return;
+  const playedMatches = matches.filter(m => m.played);
+  if (!playedMatches.length) {
+    detail.textContent = '';
+    const msg = document.createElement('div');
+    msg.style.cssText = 'padding:16px;color:var(--muted);font-size:12px';
+    msg.textContent = 'Ойналған матчтар жоқ';
+    detail.appendChild(msg);
+    return;
+  }
+  // Build detail HTML — all user-controlled strings pass through h() for XSS safety
+  let html = '';
+  sorted.forEach(t => {
+    const teamMatches = playedMatches.filter(m => m.team1Id === t.id || m.team2Id === t.id).reverse();
+    if (!teamMatches.length) return;
+    const halfHeaders = Array.from({length: CONFIG.numHalves}, (_, i) =>
+      '<th style="text-align:center;font-size:10px;color:var(--muted);padding:4px 8px">' + (i+1) + '-тайм</th>'
+    ).join('');
+    let rows = '';
+    teamMatches.forEach(m => {
+      const isTeam1 = m.team1Id === t.id;
+      const opp = teams.find(x => x.id === (isTeam1 ? m.team2Id : m.team1Id));
+      if (!opp) return;
+      const halves = m.halfScores && m.halfScores.length ? m.halfScores : [{goals1: m.goals1, goals2: m.goals2}];
+      let halfCells = '';
+      let totalPts = 0;
+      halves.forEach((hs, hi) => {
+        const gf = isTeam1 ? hs.goals1 : hs.goals2;
+        const ga = isTeam1 ? hs.goals2 : hs.goals1;
+        const res = gf > ga ? 'Ж' : gf < ga ? 'Жл' : 'Т';
+        const clr = gf > ga ? 'var(--green)' : gf < ga ? 'var(--red)' : 'var(--muted)';
+        const resPts = gf > ga ? CONFIG.winPoints : (gf === ga ? CONFIG.drawPoints : 0);
+        totalPts += resPts;
+        halfCells += '<td style="text-align:center;font-size:11px;padding:4px 8px">'
+          + '<span style="color:' + clr + ';font-weight:600">' + gf + ':' + ga + '</span> '
+          + '<span style="color:' + clr + ';font-size:9px">(' + res + ' +' + resPts + ')</span>'
+          + '</td>';
+      });
+      rows += '<tr>'
+        + '<td style="font-size:11px;padding:4px 8px">'
+        + '<span style="background:' + h(opp.color) + ';width:8px;height:8px;display:inline-block;border-radius:50%;margin-right:4px"></span>'
+        + h(opp.name)
+        + '</td>'
+        + halfCells
+        + '<td style="text-align:center;font-family:Russo One,sans-serif;font-size:12px;color:var(--accent);padding:4px 8px">' + totalPts + '</td>'
+        + '</tr>';
+    });
+    html += '<div style="margin-bottom:16px">'
+      + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;padding:4px 0">'
+      + '<span class="team-dot" style="background:' + h(t.color) + '"></span>'
+      + '<span style="font-family:Russo One,sans-serif;font-size:13px">' + h(t.name) + '</span>'
+      + '<span style="font-size:11px;color:var(--muted)">(' + getTeamStats(t.id).pts + ' ұп)</span>'
+      + '</div>'
+      + '<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr>'
+      + '<th style="text-align:left;font-size:10px;color:var(--muted);padding:4px 8px">Қарсылас</th>'
+      + halfHeaders
+      + '<th style="text-align:center;font-size:10px;color:var(--muted);padding:4px 8px">Ұпай</th>'
+      + '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+  });
+  detail.innerHTML = html;
 }
 
 // ─── TAB 6: JURY ───
@@ -1493,14 +1606,14 @@ function saveMatchScore(matchId) {
     alert('Дұрыс есеп енгізіңіз (0 немесе одан жоғары)'); return;
   }
   const m = matches.find(x=>x.id===matchId);
-  if (m) { m.goals1=g1; m.goals2=g2; m.played=true; }
+  if (m) { m.goals1=g1; m.goals2=g2; m.halfScores=[{goals1:g1,goals2:g2}]; m.played=true; }
   renderAll();
   syncState();
 }
 
 function resetMatch(matchId) {
   const m = matches.find(x=>x.id===matchId);
-  if (m) { m.played=false; m.goals1=null; m.goals2=null; }
+  if (m) { m.played=false; m.goals1=null; m.goals2=null; m.halfScores=[]; }
   renderAll();
   syncState();
 }
@@ -1525,16 +1638,26 @@ function selectFieldMatch(fieldId, val) {
   if (!f) return;
   _fieldStopTimer(fieldId);
   if (!val) {
-    f.matchId = null; f.goals = [0,0]; f.half = 1;
+    f.matchId = null; f.goals = [0,0]; f.halfGoals = []; f.half = 1;
     f.seconds = CONFIG.halfDuration; f.running = false; f.finished = false;
   } else {
     const id = parseInt(val);
     const m = matches.find(x => x.id === id);
     if (!m) return;
     f.matchId  = id;
-    f.goals    = [m.played ? m.goals1 : 0, m.played ? m.goals2 : 0];
+    f.goals    = [0, 0]; f.halfGoals = [];
     f.half     = 1; f.seconds = CONFIG.halfDuration; f.running = false; f.finished = false;
   }
+  renderLive();
+  syncState();
+}
+
+function fieldEndHalf(fieldId) {
+  const f = fields.find(x => x.id === fieldId);
+  if (!f || f.finished) return;
+  _fieldStopTimer(fieldId);
+  f.seconds = 0;
+  if (f.half >= CONFIG.numHalves) f.finished = true;
   renderLive();
   syncState();
 }
@@ -1576,7 +1699,7 @@ function _fieldTick(fieldId) {
   // Timer ticks don't need to sync every 250ms — only sync on stop/end
   if (f.seconds <= 0) {
     _fieldStopTimer(fieldId);
-    if (f.half === 2) f.finished = true;
+    if (f.half >= CONFIG.numHalves) f.finished = true;
     renderLive();
     syncState(); // sync once when timer ends
   }
@@ -1616,8 +1739,12 @@ function fieldResume(fieldId) {
 
 function fieldNextHalf(fieldId) {
   const f = fields.find(x => x.id === fieldId);
-  if (!f || f.half !== 1) return;
-  f.half = 2; f.seconds = CONFIG.halfDuration; f.running = false; f.finished = false;
+  if (!f || f.half >= CONFIG.numHalves) return;
+  // Save current half goals
+  f.halfGoals.push({ goals1: f.goals[0], goals2: f.goals[1] });
+  // Reset goals for new half
+  f.goals = [0, 0];
+  f.half += 1; f.seconds = CONFIG.halfDuration; f.running = false; f.finished = false;
   renderLive();
   syncState();
 }
@@ -1626,9 +1753,17 @@ function fieldSave(fieldId) {
   const f = fields.find(x => x.id === fieldId);
   if (!f || !f.matchId) return;
   const m = matches.find(x => x.id === f.matchId);
-  if (m) { m.goals1 = f.goals[0]; m.goals2 = f.goals[1]; m.played = true; }
+  if (m) {
+    // Add current half goals (if not already saved via fieldNextHalf)
+    const allHalves = [...f.halfGoals, { goals1: f.goals[0], goals2: f.goals[1] }];
+    m.halfScores = allHalves;
+    // Total goals = sum of all halves
+    m.goals1 = allHalves.reduce((s, h) => s + h.goals1, 0);
+    m.goals2 = allHalves.reduce((s, h) => s + h.goals2, 0);
+    m.played = true;
+  }
   _fieldStopTimer(fieldId);
-  f.matchId = null; f.goals = [0,0]; f.half = 1;
+  f.matchId = null; f.goals = [0,0]; f.halfGoals = []; f.half = 1;
   f.seconds = CONFIG.halfDuration; f.running = false; f.finished = false;
   renderAll();
   syncState();
@@ -1638,7 +1773,7 @@ function fieldCancel(fieldId) {
   _fieldStopTimer(fieldId);
   const f = fields.find(x => x.id === fieldId);
   if (f) {
-    f.matchId = null; f.goals = [0,0]; f.half = 1;
+    f.matchId = null; f.goals = [0,0]; f.halfGoals = []; f.half = 1;
     f.seconds = CONFIG.halfDuration; f.running = false; f.finished = false;
   }
   renderLive();
@@ -1882,6 +2017,17 @@ function renderSettings() {
     const el = document.getElementById('cfg-' + k);
     if (el) el.value = CONFIG[k];
   });
+  const selType = document.getElementById('cfg-scheduleType');
+  if (selType) selType.value = CONFIG.scheduleType || 'double';
+}
+
+function setScheduleType(val) {
+  if (val !== 'single' && val !== 'double') return;
+  CONFIG.scheduleType = val;
+  buildSchedule(teams);
+  renderMatches();
+  renderStandings();
+  syncState();
 }
 
 function setCfg(key, val, min, max) {
@@ -1892,7 +2038,7 @@ function setCfg(key, val, min, max) {
     // Stop all timers first
     fields.forEach(f => _fieldStopTimer(f.id));
     fields = Array.from({length: val}, (_, i) => ({
-      id: i + 1, matchId: null, goals: [0,0],
+      id: i + 1, matchId: null, goals: [0,0], halfGoals: [],
       half: 1, seconds: CONFIG.halfDuration, running: false, finished: false,
     }));
     if (currentTab === 'live') renderLive();
@@ -1908,10 +2054,10 @@ function getStateSnapshot() {
   return {
     config:  { ...CONFIG },
     teams:   teams.map(t => ({ ...t })),
-    matches: matches.map(m => ({ ...m })),
+    matches: matches.map(m => ({ ...m, halfScores: (m.halfScores||[]).map(hs => ({...hs})) })),
     // For running timers, embed start anchor so display can compute exact time
     fields:  fields.map(f => {
-      const snap = { ...f, goals: [...f.goals] };
+      const snap = { ...f, goals: [...f.goals], halfGoals: f.halfGoals.map(hg => ({...hg})) };
       if (f.running && !f.finished) {
         const t = fieldTimers[f.id];
         if (t) { snap._startTs = t.startTs; snap._startSecs = t.startSecs; }
@@ -1989,6 +2135,7 @@ function applyServerState(s) {
     fields = s.fields.map(f => ({
       ...f,
       goals: [...(f.goals || [0, 0])],
+      halfGoals: (f.halfGoals || []).map(hg => ({...hg})),
       running: false,  // timers are local-only, never restore running state
     }));
   }
