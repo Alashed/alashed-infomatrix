@@ -928,18 +928,17 @@ const TEAM_COLORS = [
 ];
 
 const INIT_TEAMS = [
-  {id:1,  name:'TECHNO MUSCLE',   members:['Danyshbaev Dias','Kalyk Amir','Ushkov Timofey'],            color:'#00d4ff'},
-  {id:2,  name:'DoubleAoneZ',     members:['Muratkanov Alikhan','Nurpeyis Abylai','Kuanysheva Zhasmin'],color:'#00ff88'},
-  {id:3,  name:'Aqtobe BIL',      members:['Akylbek Sardar','Amangos Omaralim','Zhandosuly Zhanserik'],color:'#ff7b00'},
-  {id:4,  name:'Petro BIL',       members:['Temirkhan Alken','Orazbay Arsen','Raushan Yernar'],         color:'#ff3b5c'},
-  {id:5,  name:'L33TechForce',    members:['Gabduakhit Alibi','Utepova Dinara','Nasipkali Aigerim'],    color:'#ffd700'},
-  {id:6,  name:'MrBig',           members:['Sagymbaev Islam','Nurzhanuly O.',''],                       color:'#a855f7'},
-  {id:7,  name:'Команда 7',       members:['','',''],                                                   color:'#ec4899'},
-  {id:8,  name:'Команда 8',       members:['','',''],                                                   color:'#22d3ee'},
-  {id:9,  name:'Команда 9',       members:['','',''],                                                   color:'#84cc16'},
-  {id:10, name:'TKRobotics',      members:['Sharipov Nurassyl','Akhmatulin Syrym','Buzykin Alexey'],    color:'#f97316'},
-  {id:11, name:'NOMAD ROBOTICS',  members:['Ahmedhozha Alhan','Konysbek Abdulla','Kaldybai Erzat'],     color:'#06b6d4'},
-  {id:12, name:'Команда 12',      members:['','',''],                                                   color:'#e879f9'},
+  {id:1,  name:'TECHNO MUSCLE',      members:['Danyshbaev Dias','Kalyk Amir','Ushkov Timofey'],            color:'#00d4ff'},
+  {id:2,  name:'DoubleAoneZ',        members:['Muratkanov Alikhan','Nurpeyis Abylai','Kuanysheva Zhasmin'],color:'#00ff88'},
+  {id:3,  name:'Aqtobe BIL',         members:['Akylbek Sardar','Amangos Omaralim','Zhandosuly Zhanserik'], color:'#ff7b00'},
+  {id:4,  name:'Petro BIL',          members:['Temirkhan Alken','Orazbay Arsen','Raushan Yernar'],          color:'#ff3b5c'},
+  {id:5,  name:'L33TechForce',       members:['Gabduakhit Alibi','Utepova Dinara','Nasipkali Aigerim'],     color:'#ffd700'},
+  {id:6,  name:'MrBig',              members:['Sagymbaev Islam','Nurzhanuly Mukhtar','Zhansoltan Yerzhan'], color:'#a855f7'},
+  {id:7,  name:'WinLeaders',         members:['Nurmukhambet Zhanibek','Sadyrbek Mukhammadali','Kochkarov Ilyas'], color:'#ec4899'},
+  {id:8,  name:'NextGen Tech Girls', members:['Nasrieva Humairo','Ashurova Maryam','Khoshimova Anusha'],   color:'#22d3ee'},
+  {id:9,  name:'infiNIS',            members:['Myktybayev Daulet','Malikov Imran','Ayazbayuly Bakdaulet'],  color:'#84cc16'},
+  {id:10, name:'TKRobotics',         members:['Sharipov Nurassyl','Akhmatulin Syrym','Buzykin Alexey'],     color:'#f97316'},
+  {id:11, name:'NOMAD ROBOTICS',     members:['Ahmedhozha Alhan','Konysbek Abdulla','Kaldybai Erzat'],      color:'#06b6d4'},
 ];
 
 // ═══════════════════════════════════════════════════════════════
@@ -1679,6 +1678,7 @@ function openDrawModal() {
   const list = document.getElementById('draw-list');
   list.innerHTML = '';
   document.getElementById('btn-apply-draw').style.display = 'none';
+  _modalOpen = true;
   document.getElementById('modal-draw').classList.add('open');
 
   drawNewOrder.forEach((t, i) => {
@@ -1701,6 +1701,7 @@ function openDrawModal() {
 }
 
 function closeDrawModal() {
+  _modalOpen = false;
   document.getElementById('modal-draw').classList.remove('open');
   drawNewOrder = null;
 }
@@ -1749,6 +1750,7 @@ function openAddTeamModal() {
   document.getElementById('tf-m2').value = '';
   document.getElementById('tf-m3').value = '';
   buildColorPicker();
+  _modalOpen = true;
   document.getElementById('modal-team').classList.add('open');
 }
 
@@ -1763,10 +1765,12 @@ function openEditTeamModal(id) {
   document.getElementById('tf-m2').value = t.members[1]||'';
   document.getElementById('tf-m3').value = t.members[2]||'';
   buildColorPicker();
+  _modalOpen = true;
   document.getElementById('modal-team').classList.add('open');
 }
 
 function closeTeamModal() {
+  _modalOpen = false;
   document.getElementById('modal-team').classList.remove('open');
 }
 
@@ -1802,10 +1806,12 @@ function openDeleteModal(id) {
   deletingTeamId = id;
   const t = teams.find(x=>x.id===id);
   document.getElementById('confirm-text').textContent = `"${t ? t.name : ''}" командасын жою?`;
+  _modalOpen = true;
   document.getElementById('modal-confirm').classList.add('open');
 }
 
 function closeConfirmModal() {
+  _modalOpen = false;
   document.getElementById('modal-confirm').classList.remove('open');
   deletingTeamId = null;
 }
@@ -1925,6 +1931,7 @@ function syncState() {
 let ws = null;
 let _wsFirstConnect = true;
 let _serverWasEmpty = false; // true if server had no state on startup
+let _modalOpen = false; // true when any modal is open (to prevent server updates from overwriting user input)
 
 function connectWS() {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
@@ -1946,7 +1953,8 @@ function connectWS() {
     try {
       const msg = JSON.parse(evt.data);
       // Server pushes state when another admin tab makes a change
-      if (msg.type === 'state' && msg.data && _wsFirstConnect === false) {
+      // Skip updates while user is editing in a modal to prevent losing changes
+      if (msg.type === 'state' && msg.data && _wsFirstConnect === false && !_modalOpen) {
         applyServerState(msg.data);
         renderAll();
       }

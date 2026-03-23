@@ -434,7 +434,12 @@ body::before{
 <script>
 // ─── HELPERS ───
 function esc(s) {
-  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return String(s==null?'':s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
 }
 
 function teamStats(teams, matches, teamId, cfg) {
@@ -467,7 +472,11 @@ function runNextAnim() {
   if (!animQueue.length) { animRunning = false; return; }
   animRunning = true;
   const {fn, duration} = animQueue.shift();
-  fn();
+  try {
+    fn();
+  } catch (e) {
+    console.error('[anim] Animation error:', e);
+  }
   setTimeout(runNextAnim, duration);
 }
 
@@ -759,8 +768,17 @@ function connect() {
   ws.onmessage = e => {
     try {
       const msg = JSON.parse(e.data);
-      if (msg.type==='state' && msg.data) render(msg.data);
-    } catch {}
+      if (msg.type === 'state' && msg.data) {
+        // Basic validation
+        if (msg.data.teams && Array.isArray(msg.data.teams) &&
+            msg.data.matches && Array.isArray(msg.data.matches) &&
+            msg.data.fields && Array.isArray(msg.data.fields)) {
+          render(msg.data);
+        }
+      }
+    } catch (err) {
+      console.error('[ws] Message error:', err);
+    }
   };
   ws.onclose = () => {
     wsAlive = false;
