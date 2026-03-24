@@ -1,47 +1,143 @@
-name: Deploy to infomatrix.alashed.kz
+name: Deploy to Production
 
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+
+env:
+  AWS_REGION: eu-north-1
+  S3_BUCKET: alashed-media
+  INSTANCE_ID: i-08eb56616ddb569bc
+  APP_NAME: alashed-infomatrix
+  APP_DIR: /home/ubuntu/infomatrix
+  PORT: 7000
+  DOMAIN: infomatrix.alashed.kz
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Deploy via SSM
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: eu-north-1
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Create deployment package
         run: |
-          CMD=$(aws ssm send-command \
-            --instance-ids "i-08eb56616ddb569bc" \
+          tar -czf /tmp/infomatrix-deploy.tar.gz \
+            --exclude=node_modules \
+            --exclude=.git \
+            --exclude='*.tar.gz' \
+            --exclude=.env \
+            --exclude=.github \
+            --exclude=state.json \
+            .
+
+      - name: Upload to S3
+        run: |
+          S3_KEY="deploys/${APP_NAME}-$(date +%Y%m%d-%H%M%S).tar.gz"
+          aws s3 cp /tmp/infomatrix-deploy.tar.gz "s3://${S3_BUCKET}/${S3_KEY}" \
+            --region "$AWS_REGION"
+          echo "S3_KEY=${S3_KEY}" >> $GITHUB_ENV
+
+          PRESIGNED_URL=$(aws s3 presign "s3://${S3_BUCKET}/${S3_KEY}" \
+            --expires-in 900 --region "$AWS_REGION")
+          echo "PRESIGNED_URL=${PRESIGNED_URL}" >> $GITHUB_ENV
+
+      - name: Deploy to EC2 via SSM
+        run: |
+          DB_USER="${{ secrets.DB_USER || 'infomatrix' }}"
+          DB_PASSWORD="${{ secrets.DB_PASSWORD || 'infomatrix2026' }}"
+          DB_NAME="${{ secrets.DB_NAME || 'infomatrix' }}"
+          ADMIN_TOKEN="${{ secrets.ADMIN_TOKEN || 'infomatrix2026' }}"
+          DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@localhost:5432/${DB_NAME}"
+
+          CMD_ID=$(aws ssm send-command \
+            --instance-ids "$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
-            --region eu-north-1 \
-            --comment "infomatrix-autodeploy" \
-            --parameters '{"commands":["bash /home/ubuntu/infomatrix/scripts/server-deploy.sh"]}' \
+            --region "$AWS_REGION" \
+            --comment "infomatrix-github-deploy" \
+            --parameters "commands=[
+              'echo \"=== INFOMATRIX GitHub Deploy ===\"',
+              'cd /tmp && curl -sf -o infomatrix.tar.gz \"${PRESIGNED_URL}\"',
+              'sudo -u ubuntu bash -c \"rm -rf ${APP_DIR}.old; mv ${APP_DIR} ${APP_DIR}.old 2>/dev/null || true; mkdir -p ${APP_DIR}\"',
+              'sudo -u ubuntu bash -c \"tar -xzf /tmp/infomatrix.tar.gz -C ${APP_DIR}\"',
+              'sudo -u ubuntu bash -c \"cd ${APP_DIR} && npm install --production --silent\"',
+              'sudo -u ubuntu tee ${APP_DIR}/ecosystem.config.js > /dev/null << EOF
+module.exports = {
+  apps: [{
+    name: \"infomatrix\",
+    script: \"./server.js\",
+    env: {
+      PORT: ${PORT},
+      NODE_ENV: \"production\",
+      ADMIN_TOKEN: \"${ADMIN_TOKEN}\",
+      DATABASE_URL: \"${DATABASE_URL}\"
+    }
+  }]
+};
+EOF',
+              'sudo -u ubuntu pm2 delete infomatrix 2>/dev/null || true',
+              'cd ${APP_DIR} && sudo -u ubuntu pm2 start ecosystem.config.js',
+              'sleep 3',
+              'sudo -u ubuntu pm2 save',
+              'echo \"[OK] Deployment complete\"',
+              'curl -s http://localhost:${PORT}/health | jq .'
+            ]" \
             --output text --query "Command.CommandId")
 
-          echo "SSM Command: $CMD"
-          sleep 45
+          echo "SSM Command ID: $CMD_ID"
+          echo "Waiting for deployment to complete..."
+          sleep 25
 
           STATUS=$(aws ssm get-command-invocation \
-            --command-id "$CMD" \
-            --instance-id "i-08eb56616ddb569bc" \
-            --region eu-north-1 \
-            --query "Status" --output text)
+            --command-id "$CMD_ID" \
+            --instance-id "$INSTANCE_ID" \
+            --region "$AWS_REGION" \
+            --query "Status" \
+            --output text 2>/dev/null || echo "Unknown")
 
-          OUT=$(aws ssm get-command-invocation \
-            --command-id "$CMD" \
-            --instance-id "i-08eb56616ddb569bc" \
-            --region eu-north-1 \
-            --query "StandardOutputContent" --output text)
-
-          echo "$OUT"
+          echo "Deployment status: $STATUS"
 
           if [ "$STATUS" != "Success" ]; then
-            echo "Deploy failed with status: $STATUS"
+            echo "Deployment failed!"
+            aws ssm get-command-invocation \
+              --command-id "$CMD_ID" \
+              --instance-id "$INSTANCE_ID" \
+              --region "$AWS_REGION" \
+              --query "StandardErrorContent" \
+              --output text
             exit 1
           fi
 
-          echo "✅ Deployed to https://infomatrix.alashed.kz"
+          echo "Deployment successful!"
+          aws ssm get-command-invocation \
+            --command-id "$CMD_ID" \
+            --instance-id "$INSTANCE_ID" \
+            --region "$AWS_REGION" \
+            --query "StandardOutputContent" \
+            --output text | tail -20
+
+      - name: Verify deployment
+        run: |
+          echo "Waiting for service to be ready..."
+          sleep 5
+
+          HEALTH_STATUS=$(curl -sf https://${DOMAIN}/health | jq -r '.status' || echo "error")
+
+          if [ "$HEALTH_STATUS" = "ok" ] || [ "$HEALTH_STATUS" = "degraded" ]; then
+            echo "✅ Deployment verified successfully!"
+            echo "🌐 Display: https://${DOMAIN}/"
+            echo "🔐 Admin: https://${DOMAIN}/admin"
+            echo "❤️  Health: https://${DOMAIN}/health"
+          else
+            echo "❌ Health check failed: $HEALTH_STATUS"
+            exit 1
+          fi
