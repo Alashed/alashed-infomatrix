@@ -52,11 +52,12 @@ jobs:
           echo "PRESIGNED_URL=${PRESIGNED_URL}" >> $GITHUB_ENV
 
       - name: Deploy to EC2 via SSM
+        env:
+          DB_USER: ${{ secrets.DB_USER || 'infomatrix' }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD || 'infomatrix2026' }}
+          DB_NAME: ${{ secrets.DB_NAME || 'infomatrix' }}
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN || 'infomatrix2026' }}
         run: |
-          DB_USER="${{ secrets.DB_USER || 'infomatrix' }}"
-          DB_PASSWORD="${{ secrets.DB_PASSWORD || 'infomatrix2026' }}"
-          DB_NAME="${{ secrets.DB_NAME || 'infomatrix' }}"
-          ADMIN_TOKEN="${{ secrets.ADMIN_TOKEN || 'infomatrix2026' }}"
           DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@localhost:5432/${DB_NAME}"
 
           CMD_ID=$(aws ssm send-command \
