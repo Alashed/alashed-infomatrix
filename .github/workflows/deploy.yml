@@ -128,6 +128,10 @@ jobs:
           sudo cat \${APP_DIR}/.env || echo "No .env file"
 
           echo ""
+          echo "DATABASE_URL starts with:"
+          sudo grep DATABASE_URL \${APP_DIR}/.env | cut -c1-40
+
+          echo ""
           echo "New node processes:"
           ps aux | grep node | grep -v grep || echo "No node processes"
 
