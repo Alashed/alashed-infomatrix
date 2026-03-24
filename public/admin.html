@@ -796,6 +796,17 @@ label.form-label{display:block;font-size:11px;color:var(--muted);margin-bottom:4
             oninput="setCfg('buildTimeThreshold',+this.value,1,120)">
         </div>
       </div>
+
+      <!-- Regenerate Schedule Section -->
+      <div class="card" style="margin-top:20px; border-left:4px solid #f59e0b">
+        <div class="section-title">⚠️ Кесте қайта құру</div>
+        <div style="margin-bottom:15px; color:var(--muted)">
+          Назар аударыңыз: Бұл барлық матчтарды қайта жасайды. Ойналған матчтар жоғалады!
+        </div>
+        <button class="btn btn-outline" onclick="regenerateSchedule()" style="background:#f59e0b; border-color:#f59e0b">
+          🔄 Кесте қайта құру (scheduleType бойынша)
+        </button>
+      </div>
     </div>
   </div>
 
@@ -1028,6 +1039,35 @@ function buildSchedule(teamsList) {
       }
     }
   }
+}
+
+function regenerateSchedule() {
+  const playedCount = matches.filter(m => m.played).length;
+  let confirmMsg = `⚠️ КЕСТЕ ҚАЙТА ҚҰРУ\n\n`;
+  confirmMsg += `Ағымдағы: ${matches.length} матч\n`;
+  confirmMsg += `Ойналды: ${playedCount} матч\n\n`;
+
+  const n = teams.length;
+  const expectedMatches = CONFIG.scheduleType === 'double'
+    ? n * (n - 1)  // Double round-robin: n×(n-1)
+    : (n * (n - 1)) / 2;  // Single round-robin: C(n,2)
+
+  confirmMsg += `Жаңа кесте: ${expectedMatches} матч (${CONFIG.scheduleType})\n\n`;
+  confirmMsg += `БАРЛЫҚ МАТЧТАР ЖОҒАЛАДЫ!\n\nЖалғастыру керек пе?`;
+
+  if (!confirm(confirmMsg)) return;
+
+  // Rebuild schedule with current teams
+  buildSchedule(teams);
+
+  // Sync to server
+  syncState();
+
+  // Refresh UI
+  renderMatches();
+  renderStandings();
+
+  alert(`✅ Кесте қайта құрылды!\n\nЖаңа матчтар: ${matches.length}\nТип: ${CONFIG.scheduleType}`);
 }
 
 function addTeamToSchedule(newTeam) {
