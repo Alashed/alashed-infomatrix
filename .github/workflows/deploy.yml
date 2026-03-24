@@ -112,9 +112,16 @@ jobs:
 
           # Kill all node processes (nuclear option)
           echo "6. Killing all node processes..."
+          echo "Before kill - node processes:"
+          ps aux | grep node | grep -v grep || echo "No node processes found"
+
           sudo pkill -9 -u ubuntu node || true
           sudo killall -9 node || true
+          sudo systemctl stop infomatrix 2>/dev/null || true
           sleep 2
+
+          echo "After kill - remaining processes:"
+          ps aux | grep node | grep -v grep || echo "All node processes killed"
 
           # Start service
           echo "7. Starting service..."
@@ -123,7 +130,16 @@ jobs:
           sleep 3
 
           # Verify service is running
+          echo "Service status:"
           sudo systemctl status infomatrix --no-pager || true
+
+          echo ""
+          echo "New node processes:"
+          ps aux | grep node | grep -v grep || echo "No node processes"
+
+          echo ""
+          echo "Checking port ${PORT}:"
+          sudo netstat -tlnp | grep :${PORT} || echo "Port not listening"
 
           # Health check
           echo "8. Health check..."
