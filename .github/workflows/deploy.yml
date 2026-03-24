@@ -112,7 +112,8 @@ jobs:
 
           # Kill all node processes (nuclear option)
           echo "6. Killing all node processes..."
-          sudo pkill -9 node || true
+          sudo pkill -9 -u ubuntu node || true
+          sudo killall -9 node || true
           sleep 2
 
           # Start service
@@ -120,6 +121,9 @@ jobs:
           sudo systemctl enable infomatrix
           sudo systemctl start infomatrix
           sleep 3
+
+          # Verify service is running
+          sudo systemctl status infomatrix --no-pager || true
 
           # Health check
           echo "8. Health check..."
