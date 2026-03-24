@@ -47,7 +47,7 @@ body::before{
 .ws-dot.on{background:var(--green);box-shadow:0 0 5px var(--green)}
 
 /* ─── CONTENT ─── */
-.content{display:grid;grid-template-columns:1fr 380px;overflow:hidden;}
+.content{display:grid;grid-template-columns:1fr 480px;overflow:hidden;}
 
 /* ─── LEFT PANEL ─── */
 .panel-fields{padding:14px;overflow:hidden;display:flex;flex-direction:column;gap:12px;}
@@ -402,6 +402,7 @@ body::before{
               <th>#</th><th>Команда</th>
               <th>Ж</th><th>Т</th><th>Жл</th>
               <th>КГ</th><th>ЖГ</th><th>Ұп</th>
+              <th>Ойын<br><span style="font-weight:400;font-size:8px">/40</span></th>
             </tr>
           </thead>
           <tbody id="stand-body">
@@ -442,19 +443,23 @@ function esc(s) {
     .replace(/'/g,'&#39;');
 }
 
+// Stats calculated per half — each half scored independently
 function teamStats(teams, matches, teamId, cfg) {
   const wp = cfg?.winPoints  ?? 3;
   const dp = cfg?.drawPoints ?? 1;
   let W=0,D=0,L=0,GF=0,GA=0,pts=0;
   matches.forEach(m => {
     if (!m.played) return;
-    if (m.team1Id===teamId) {
-      GF+=m.goals1;GA+=m.goals2;
-      if(m.goals1>m.goals2){W++;pts+=wp;}else if(m.goals1===m.goals2){D++;pts+=dp;}else L++;
-    } else if (m.team2Id===teamId) {
-      GF+=m.goals2;GA+=m.goals1;
-      if(m.goals2>m.goals1){W++;pts+=wp;}else if(m.goals1===m.goals2){D++;pts+=dp;}else L++;
-    }
+    const halves = m.halfScores && m.halfScores.length ? m.halfScores : [{goals1: m.goals1, goals2: m.goals2}];
+    halves.forEach(hs => {
+      if (m.team1Id===teamId) {
+        GF+=hs.goals1;GA+=hs.goals2;
+        if(hs.goals1>hs.goals2){W++;pts+=wp;}else if(hs.goals1===hs.goals2){D++;pts+=dp;}else L++;
+      } else if (m.team2Id===teamId) {
+        GF+=hs.goals2;GA+=hs.goals1;
+        if(hs.goals2>hs.goals1){W++;pts+=wp;}else if(hs.goals1===hs.goals2){D++;pts+=dp;}else L++;
+      }
+    });
   });
   return {W,D,L,GF,GA,GD:GF-GA,pts,GP:W+D+L};
 }
@@ -694,6 +699,17 @@ function renderFields(s, elapsedSec) {
   }).join('');
 }
 
+function getGamePts(teams, matches, teamId, cfg) {
+  const st = teamStats(teams, matches, teamId, cfg);
+  const teamMatchCount = matches.filter(m => m.team1Id === teamId || m.team2Id === teamId).length;
+  const numHalves = cfg?.numHalves ?? 2;
+  const wp = cfg?.winPoints ?? 3;
+  const gpMax = cfg?.gamePointsMax ?? 40;
+  const maxPossible = teamMatchCount * numHalves * wp;
+  if (!maxPossible) return 0;
+  return Math.round((st.pts / maxPossible) * gpMax * 10) / 10;
+}
+
 // Track standings for animations
 let prevStandOrder = [];  // [teamId, ...]
 let prevStandPts   = {};  // teamId → pts
@@ -734,6 +750,7 @@ function renderStandings(s) {
       <td style="color:var(--red)">${st.L}</td>
       <td>${st.GF}</td><td>${st.GA}</td>
       <td><span class="pts-c ${ptsCls}">${st.pts}</span></td>
+      <td style="color:var(--accent);font-weight:600">${getGamePts(s.teams,s.matches,t.id,s.config)}</td>
     </tr>`;
   }).join('');
 
