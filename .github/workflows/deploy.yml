@@ -65,33 +65,21 @@ jobs:
             --document-name "AWS-RunShellScript" \
             --region "$AWS_REGION" \
             --comment "infomatrix-github-deploy" \
-            --parameters "commands=[
-              'echo \"=== INFOMATRIX GitHub Deploy ===\"',
-              'cd /tmp && curl -sf -o infomatrix.tar.gz \"${PRESIGNED_URL}\"',
-              'sudo -u ubuntu bash -c \"rm -rf ${APP_DIR}.old; mv ${APP_DIR} ${APP_DIR}.old 2>/dev/null || true; mkdir -p ${APP_DIR}\"',
-              'sudo -u ubuntu bash -c \"tar -xzf /tmp/infomatrix.tar.gz -C ${APP_DIR}\"',
-              'sudo -u ubuntu bash -c \"cd ${APP_DIR} && npm install --production --silent\"',
-              'sudo -u ubuntu tee ${APP_DIR}/ecosystem.config.js > /dev/null << EOF
-module.exports = {
-  apps: [{
-    name: \"infomatrix\",
-    script: \"./server.js\",
-    env: {
-      PORT: ${PORT},
-      NODE_ENV: \"production\",
-      ADMIN_TOKEN: \"${ADMIN_TOKEN}\",
-      DATABASE_URL: \"${DATABASE_URL}\"
-    }
-  }]
-};
-EOF',
-              'sudo -u ubuntu pm2 delete infomatrix 2>/dev/null || true',
-              'cd ${APP_DIR} && sudo -u ubuntu pm2 start ecosystem.config.js',
-              'sleep 3',
-              'sudo -u ubuntu pm2 save',
-              'echo \"[OK] Deployment complete\"',
-              'curl -s http://localhost:${PORT}/health | jq .'
-            ]" \
+            --parameters commands="echo '=== INFOMATRIX GitHub Deploy ===';
+              cd /tmp && curl -sf -o infomatrix.tar.gz '${PRESIGNED_URL}';
+              sudo -u ubuntu bash -c 'rm -rf ${APP_DIR}.old; mv ${APP_DIR} ${APP_DIR}.old 2>/dev/null || true; mkdir -p ${APP_DIR}';
+              sudo -u ubuntu bash -c 'tar -xzf /tmp/infomatrix.tar.gz -C ${APP_DIR}';
+              sudo -u ubuntu bash -c 'cd ${APP_DIR} && npm install --production --silent';
+              echo \"PORT=${PORT}\" | sudo -u ubuntu tee ${APP_DIR}/.env > /dev/null;
+              echo \"NODE_ENV=production\" | sudo -u ubuntu tee -a ${APP_DIR}/.env > /dev/null;
+              echo \"ADMIN_TOKEN=${ADMIN_TOKEN}\" | sudo -u ubuntu tee -a ${APP_DIR}/.env > /dev/null;
+              echo \"DATABASE_URL=${DATABASE_URL}\" | sudo -u ubuntu tee -a ${APP_DIR}/.env > /dev/null;
+              sudo -u ubuntu pm2 delete infomatrix 2>/dev/null || true;
+              cd ${APP_DIR} && sudo -u ubuntu PORT=${PORT} NODE_ENV=production ADMIN_TOKEN=${ADMIN_TOKEN} DATABASE_URL='${DATABASE_URL}' pm2 start ecosystem.config.js;
+              sleep 3;
+              sudo -u ubuntu pm2 save;
+              echo '[OK] Deployment complete';
+              curl -s http://localhost:${PORT}/health | jq ." \
             --output text --query "Command.CommandId")
 
           echo "SSM Command ID: $CMD_ID"
