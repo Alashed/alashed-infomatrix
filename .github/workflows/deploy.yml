@@ -185,7 +185,7 @@ jobs:
             --instance-id "$INSTANCE_ID" \
             --region "$AWS_REGION" \
             --query "StandardOutputContent" \
-            --output text | tail -20
+            --output text | tail -50
 
       - name: Verify deployment
         run: |
