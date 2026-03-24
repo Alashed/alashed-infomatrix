@@ -57,35 +57,25 @@ jobs:
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN || 'infomatrix2026' }}
         run: |
 
-          # Create parameters file and upload to server
-          cat > /tmp/deploy-params.env << EOF
-          export PRESIGNED_URL="${PRESIGNED_URL}"
-          export APP_DIR="${APP_DIR}"
-          export PORT="${PORT}"
-          export ADMIN_TOKEN="${ADMIN_TOKEN}"
-          export DATABASE_URL="${DATABASE_URL}"
-          EOF
-
-          aws s3 cp /tmp/deploy-params.env "s3://${S3_BUCKET}/deploys/infomatrix-params.env" \
-            --region "$AWS_REGION"
-
-          PARAMS_URL=$(aws s3 presign "s3://${S3_BUCKET}/deploys/infomatrix-params.env" \
-            --expires-in 600 --region "$AWS_REGION")
-
-          # Create inline deployment script to avoid chicken-egg problem
-          cat > /tmp/deploy-inline.sh << 'DEPLOY_SCRIPT'
+          # Create inline deployment script
+          cat > /tmp/deploy-inline.sh << DEPLOY_SCRIPT
           #!/bin/bash
           set -e
 
-          # Download params
-          curl -sf "$PARAMS_URL" > /tmp/infomatrix-deploy-params.env
-          source /tmp/infomatrix-deploy-params.env
+          # Variables
+          S3_BUCKET="${S3_BUCKET}"
+          S3_KEY="${S3_KEY}"
+          APP_DIR="${APP_DIR}"
+          PORT="${PORT}"
+          ADMIN_TOKEN="${ADMIN_TOKEN}"
+          DATABASE_URL="${DATABASE_URL}"
+          AWS_REGION="${AWS_REGION}"
 
           echo "=== INFOMATRIX Deploy ==="
 
           # Download from S3
           echo "1. Downloading from S3..."
-          cd /tmp && curl -sf "$PRESIGNED_URL" -o infomatrix.tar.gz
+          cd /tmp && aws s3 cp "s3://\${S3_BUCKET}/\${S3_KEY}" infomatrix.tar.gz --region "\${AWS_REGION}"
 
           # Backup and extract
           echo "2. Extracting..."
@@ -149,19 +139,16 @@ jobs:
           echo "✅ Deploy complete!"
           DEPLOY_SCRIPT
 
-          DEPLOY_SCRIPT_URL=$(aws s3 presign "s3://${S3_BUCKET}/deploys/deploy-inline.sh" --expires-in 600 --region "$AWS_REGION" || true)
+          # Upload deploy script to S3
+          aws s3 cp /tmp/deploy-inline.sh "s3://${S3_BUCKET}/deploys/deploy-inline.sh" --region "$AWS_REGION"
 
-          if [ -z "$DEPLOY_SCRIPT_URL" ]; then
-            aws s3 cp /tmp/deploy-inline.sh "s3://${S3_BUCKET}/deploys/deploy-inline.sh" --region "$AWS_REGION"
-            DEPLOY_SCRIPT_URL=$(aws s3 presign "s3://${S3_BUCKET}/deploys/deploy-inline.sh" --expires-in 600 --region "$AWS_REGION")
-          fi
-
+          # Send SSM command
           CMD_ID=$(aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
             --region "$AWS_REGION" \
             --comment "infomatrix-github-deploy" \
-            --parameters "{\"commands\":[\"export PARAMS_URL='$PARAMS_URL' && curl -sS '$DEPLOY_SCRIPT_URL' -o /tmp/deploy.sh && chmod +x /tmp/deploy.sh && bash /tmp/deploy.sh 2>&1\"]}" \
+            --parameters "{\"commands\":[\"aws s3 cp s3://${S3_BUCKET}/deploys/deploy-inline.sh /tmp/deploy.sh --region ${AWS_REGION} && chmod +x /tmp/deploy.sh && bash /tmp/deploy.sh 2>&1\"]}" \
             --output text --query "Command.CommandId")
 
           echo "SSM Command ID: $CMD_ID"
