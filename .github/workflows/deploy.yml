@@ -53,12 +53,9 @@ jobs:
 
       - name: Deploy to EC2 via SSM
         env:
-          DB_USER: ${{ secrets.DB_USER || 'infomatrix' }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD || 'infomatrix2026' }}
-          DB_NAME: ${{ secrets.DB_NAME || 'infomatrix' }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN || 'infomatrix2026' }}
         run: |
-          DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@localhost:5432/${DB_NAME}"
 
           # Create parameters file and upload to server
           cat > /tmp/deploy-params.env << EOF
@@ -66,9 +63,6 @@ jobs:
           export APP_DIR="${APP_DIR}"
           export PORT="${PORT}"
           export ADMIN_TOKEN="${ADMIN_TOKEN}"
-          export DB_USER="${DB_USER}"
-          export DB_PASSWORD="${DB_PASSWORD}"
-          export DB_NAME="${DB_NAME}"
           export DATABASE_URL="${DATABASE_URL}"
           EOF
 
