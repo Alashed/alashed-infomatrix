@@ -108,7 +108,7 @@ jobs:
           # Restart PM2
           echo "5. Restarting..."
           sudo -u ubuntu pm2 delete infomatrix 2>/dev/null || true
-          sudo -u ubuntu bash -c "cd ${APP_DIR} && PORT=${PORT} NODE_ENV=production ADMIN_TOKEN=${ADMIN_TOKEN} DATABASE_URL=\"${DATABASE_URL}\" pm2 start ecosystem.config.js"
+          sudo -u ubuntu bash -c "cd ${APP_DIR} && pm2 start ecosystem.config.js --env production --update-env"
           sleep 3
           sudo -u ubuntu pm2 save
 
