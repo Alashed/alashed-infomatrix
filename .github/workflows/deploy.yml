@@ -107,7 +107,9 @@ jobs:
 
           # Restart PM2
           echo "5. Restarting..."
-          sudo -u ubuntu bash -c "cd ${APP_DIR} && pm2 restart infomatrix --env production --update-env || pm2 start ecosystem.config.js --env production --update-env"
+          sudo -u ubuntu pm2 stop all || true
+          sudo -u ubuntu pm2 delete all || true
+          sudo -u ubuntu bash -c "cd ${APP_DIR} && pm2 start ecosystem.config.js --env production --update-env"
           sleep 3
           sudo -u ubuntu pm2 save
 
