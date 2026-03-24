@@ -161,7 +161,7 @@ jobs:
             --document-name "AWS-RunShellScript" \
             --region "$AWS_REGION" \
             --comment "infomatrix-github-deploy" \
-            --parameters "{\"commands\":[\"export PARAMS_URL='$PARAMS_URL' && curl -sf '$DEPLOY_SCRIPT_URL' -o /tmp/deploy.sh && chmod +x /tmp/deploy.sh && /tmp/deploy.sh 2>&1\"]}" \
+            --parameters "{\"commands\":[\"export PARAMS_URL='$PARAMS_URL' && curl -sS '$DEPLOY_SCRIPT_URL' -o /tmp/deploy.sh && chmod +x /tmp/deploy.sh && bash /tmp/deploy.sh 2>&1\"]}" \
             --output text --query "Command.CommandId")
 
           echo "SSM Command ID: $CMD_ID"
