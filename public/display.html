@@ -486,40 +486,41 @@ function runNextAnim() {
 }
 
 // GOAL animation
+let _goalTimer = null;
 function showGoal(teamName, teamColor, score1, score2) {
-  queueAnim(() => {
-    const overlay = document.getElementById('goal-overlay');
-    document.getElementById('goal-word').style.color = teamColor || '#00e5ff';
-    document.getElementById('goal-team').textContent = teamName.toUpperCase();
-    document.getElementById('goal-team').style.color = teamColor || '#fff';
-    document.getElementById('goal-score').textContent = `${score1}  :  ${score2}`;
+  const overlay = document.getElementById('goal-overlay');
+  // If already showing a goal, just update the info (don't queue)
+  if (_goalTimer) clearTimeout(_goalTimer);
+  document.getElementById('goal-word').style.color = teamColor || '#00e5ff';
+  document.getElementById('goal-team').textContent = teamName.toUpperCase();
+  document.getElementById('goal-team').style.color = teamColor || '#fff';
+  document.getElementById('goal-score').textContent = `${score1}  :  ${score2}`;
 
-    // Generate particles
-    const pc = document.getElementById('particles');
-    pc.innerHTML = '';
-    const colors = [teamColor || '#00e5ff', '#fff', '#ffd700', '#ff6b6b', '#00ff88'];
-    for (let i = 0; i < 60; i++) {
-      const p = document.createElement('div');
-      p.className = 'particle';
-      p.style.cssText = `
-        left:${Math.random()*100}%;
-        top:${-10 + Math.random()*30}%;
-        background:${colors[Math.floor(Math.random()*colors.length)]};
-        width:${6+Math.random()*10}px;
-        height:${6+Math.random()*10}px;
-        border-radius:${Math.random()>0.5?'50%':'3px'};
-        animation-delay:${Math.random()*0.8}s;
-        animation-duration:${1.2+Math.random()*1}s;
-      `;
-      pc.appendChild(p);
-    }
+  // Generate particles
+  const pc = document.getElementById('particles');
+  pc.innerHTML = '';
+  const colors = [teamColor || '#00e5ff', '#fff', '#ffd700', '#ff6b6b', '#00ff88'];
+  for (let i = 0; i < 60; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.style.cssText = `
+      left:${Math.random()*100}%;
+      top:${-10 + Math.random()*30}%;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      width:${6+Math.random()*10}px;
+      height:${6+Math.random()*10}px;
+      border-radius:${Math.random()>0.5?'50%':'3px'};
+      animation-delay:${Math.random()*0.8}s;
+      animation-duration:${1.2+Math.random()*1}s;
+    `;
+    pc.appendChild(p);
+  }
 
-    overlay.className = 'show';
-    setTimeout(() => {
-      overlay.className = 'hide';
-      setTimeout(() => { overlay.className = ''; overlay.style.display = ''; }, 400);
-    }, 2800);
-  }, 3200);
+  overlay.className = 'show';
+  _goalTimer = setTimeout(() => {
+    overlay.className = 'hide';
+    _goalTimer = setTimeout(() => { overlay.className = ''; overlay.style.display = ''; _goalTimer = null; }, 400);
+  }, 2800);
 }
 
 // Banner animation
@@ -562,8 +563,10 @@ function detectEvents(s) {
     if (prev) {
       const g0 = f.goals?.[0] ?? 0;
       const g1 = f.goals?.[1] ?? 0;
-      const pg0 = prev.goals?.[0] ?? 0;
-      const pg1 = prev.goals?.[1] ?? 0;
+      // If half changed, previous goals are from old half — reset baseline
+      const halfChanged = (f.half || 1) !== prev.half;
+      const pg0 = halfChanged ? 0 : (prev.goals?.[0] ?? 0);
+      const pg1 = halfChanged ? 0 : (prev.goals?.[1] ?? 0);
 
       // Goal team 1
       if (g0 > pg0) {
@@ -581,9 +584,9 @@ function detectEvents(s) {
         showBanner('timeout', '⏸', 'ТАЙМ-АУТ', `АЛАҢ ${f.id}`, 2500);
       }
 
-      // Half-time (half changed 1→2)
-      if (prev.half === 1 && f.half === 2) {
-        showBanner('halftime', '🔄', 'АРА ҮЗІЛІС', `АЛАҢ ${f.id} · ЕКІНШІ ТАЙМ БАСТАЛАДЫ`, 3000);
+      // Half-time (half changed)
+      if (prev.half && f.half && f.half > prev.half) {
+        showBanner('halftime', '🔄', 'АРА ҮЗІЛІС', `АЛАҢ ${f.id} · ${f.half}-ТАЙМ БАСТАЛАДЫ`, 3000);
       }
 
       // Match end
@@ -646,19 +649,26 @@ setInterval(() => {
   });
 }, 100);
 
+// All user-visible strings pass through esc() for XSS safety
 function renderFields(s, elapsedSec) {
   const container = document.getElementById('fields-display');
-  const activeFields = (s.fields || []).filter(f => f.matchId);
-  const count = Math.min(activeFields.length, 4) || 1;
+  const allFields = s.fields || [];
+  const totalFields = allFields.length || 1;
 
-  container.className = `fields-display count-${Math.min(count, 4)}`;
+  container.className = `fields-display count-${Math.min(totalFields, 4)}`;
 
-  if (activeFields.length === 0) {
-    container.innerHTML = `<div class="field-box idle" style="min-height:120px"><div class="no-match-box">МАТЧТАР ЖОҚ</div></div>`;
+  if (allFields.length === 0) {
+    container.innerHTML = '<div class="field-box idle" style="min-height:120px"><div class="no-match-box">МАТЧТАР ЖОҚ</div></div>';
     return;
   }
 
-  container.innerHTML = activeFields.map(f => {
+  container.innerHTML = allFields.map(f => {
+    if (!f.matchId) {
+      return '<div class="field-box idle">'
+        + '<div class="field-num-badge">АЛАҢ ' + f.id + '</div>'
+        + '<div class="no-match-box">КҮТІЛУДЕ</div>'
+        + '</div>';
+    }
     const m  = s.matches.find(x => x.id === f.matchId);
     const t1 = m ? s.teams.find(t => t.id === m.team1Id) : null;
     const t2 = m ? s.teams.find(t => t.id === m.team2Id) : null;
@@ -694,6 +704,7 @@ function renderFields(s, elapsedSec) {
           <div class="team-members-disp">${(t2?.members||[]).filter(x=>x).join(' · ')}</div>
         </div>
       </div>
+      ${(f.halfGoals||[]).length ? `<div style="font-size:clamp(8px,1vw,11px);color:var(--muted);margin:2px 0">${f.halfGoals.map((hg,i) => `${i+1}T: ${hg.goals1}:${hg.goals2}`).join(' · ')}</div>` : ''}
       <div class="timer-disp ${timerCls}" id="lt-${f.id}">${timerStr}</div>
     </div>`;
   }).join('');
@@ -808,7 +819,7 @@ function connect() {
 
 fetchState();
 connect();
-setInterval(() => { if (!wsAlive) fetchState(); }, 10000);
+setInterval(() => { if (!wsAlive) fetchState(); }, 5000);
 </script>
 </body>
 </html>
