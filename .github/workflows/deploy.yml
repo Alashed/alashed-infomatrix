@@ -78,12 +78,67 @@ jobs:
           PARAMS_URL=$(aws s3 presign "s3://${S3_BUCKET}/deploys/infomatrix-params.env" \
             --expires-in 600 --region "$AWS_REGION")
 
+          # Create inline deployment script to avoid chicken-egg problem
+          cat > /tmp/deploy-inline.sh << 'DEPLOY_SCRIPT'
+          #!/bin/bash
+          set -e
+
+          # Download params
+          curl -sf "$PARAMS_URL" > /tmp/infomatrix-deploy-params.env
+          source /tmp/infomatrix-deploy-params.env
+
+          echo "=== INFOMATRIX Deploy ==="
+
+          # Download from S3
+          echo "1. Downloading from S3..."
+          cd /tmp && curl -sf "$PRESIGNED_URL" -o infomatrix.tar.gz
+
+          # Backup and extract
+          echo "2. Extracting..."
+          sudo -u ubuntu bash -c "rm -rf ${APP_DIR}.old; mv ${APP_DIR} ${APP_DIR}.old 2>/dev/null || true; mkdir -p ${APP_DIR}"
+          sudo -u ubuntu bash -c "tar -xzf /tmp/infomatrix.tar.gz -C ${APP_DIR}"
+
+          # Install deps
+          echo "3. Installing dependencies..."
+          sudo -u ubuntu bash -c "cd ${APP_DIR} && npm install --production --silent"
+
+          # Create .env
+          echo "4. Creating .env..."
+          sudo -u ubuntu bash -c "cat > ${APP_DIR}/.env << EOF
+          PORT=${PORT}
+          NODE_ENV=production
+          ADMIN_TOKEN=${ADMIN_TOKEN}
+          DATABASE_URL=${DATABASE_URL}
+          EOF"
+
+          # Restart PM2
+          echo "5. Restarting..."
+          sudo -u ubuntu pm2 delete infomatrix 2>/dev/null || true
+          sudo -u ubuntu bash -c "cd ${APP_DIR} && PORT=${PORT} NODE_ENV=production ADMIN_TOKEN=${ADMIN_TOKEN} DATABASE_URL=\"${DATABASE_URL}\" pm2 start ecosystem.config.js"
+          sleep 3
+          sudo -u ubuntu pm2 save
+
+          # Health check
+          echo "6. Health check..."
+          sleep 2
+          curl -sf http://localhost:${PORT}/health | jq . || echo "Health check warning"
+
+          echo "✅ Deploy complete!"
+          DEPLOY_SCRIPT
+
+          DEPLOY_SCRIPT_URL=$(aws s3 presign "s3://${S3_BUCKET}/deploys/deploy-inline.sh" --expires-in 600 --region "$AWS_REGION" || true)
+
+          if [ -z "$DEPLOY_SCRIPT_URL" ]; then
+            aws s3 cp /tmp/deploy-inline.sh "s3://${S3_BUCKET}/deploys/deploy-inline.sh" --region "$AWS_REGION"
+            DEPLOY_SCRIPT_URL=$(aws s3 presign "s3://${S3_BUCKET}/deploys/deploy-inline.sh" --expires-in 600 --region "$AWS_REGION")
+          fi
+
           CMD_ID=$(aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
             --region "$AWS_REGION" \
             --comment "infomatrix-github-deploy" \
-            --parameters "{\"commands\":[\"curl -sf \\\"$PARAMS_URL\\\" > /tmp/infomatrix-deploy-params.env && bash ${APP_DIR}/scripts/server-deploy.sh\"]}" \
+            --parameters "{\"commands\":[\"export PARAMS_URL='$PARAMS_URL' && curl -sf '$DEPLOY_SCRIPT_URL' | bash\"]}" \
             --output text --query "Command.CommandId")
 
           echo "SSM Command ID: $CMD_ID"
