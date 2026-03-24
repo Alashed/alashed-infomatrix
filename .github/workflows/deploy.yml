@@ -110,13 +110,19 @@ jobs:
           sudo cp ${APP_DIR}/infomatrix.service /etc/systemd/system/infomatrix.service
           sudo systemctl daemon-reload
 
-          # Restart service
-          echo "6. Restarting..."
-          sudo systemctl restart infomatrix
+          # Kill all node processes (nuclear option)
+          echo "6. Killing all node processes..."
+          sudo pkill -9 node || true
+          sleep 2
+
+          # Start service
+          echo "7. Starting service..."
+          sudo systemctl enable infomatrix
+          sudo systemctl start infomatrix
           sleep 3
 
           # Health check
-          echo "7. Health check..."
+          echo "8. Health check..."
           sleep 2
           curl -sf http://localhost:${PORT}/health | jq . || echo "Health check warning"
 
