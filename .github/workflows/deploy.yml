@@ -83,7 +83,7 @@ jobs:
             --document-name "AWS-RunShellScript" \
             --region "$AWS_REGION" \
             --comment "infomatrix-github-deploy" \
-            --parameters commands="curl -sf '$PARAMS_URL' > /tmp/infomatrix-deploy-params.env && bash ${APP_DIR}/scripts/server-deploy.sh" \
+            --parameters "{\"commands\":[\"curl -sf $PARAMS_URL > /tmp/infomatrix-deploy-params.env && bash ${APP_DIR}/scripts/server-deploy.sh\"]}" \
             --output text --query "Command.CommandId")
 
           echo "SSM Command ID: $CMD_ID"
