@@ -679,6 +679,7 @@ label.form-label{display:block;font-size:11px;color:var(--muted);margin-bottom:4
       <button class="btn btn-warning" onclick="openDrawModal()"><span class="iconify" data-icon="hugeicons:dice-01" data-width="13" style="vertical-align:middle"></span> Жеребе</button>
       <button class="btn btn-primary" onclick="shuffleMatches()"><span class="iconify" data-icon="hugeicons:shuffle-01" data-width="13" style="vertical-align:middle"></span> Араластыру</button>
       <button class="btn btn-ghost" onclick="resetMatchOrder()"><span class="iconify" data-icon="hugeicons:sort-by-up-01" data-width="13" style="vertical-align:middle"></span> Бастапқы</button>
+      <button class="btn btn-success" onclick="saveSchedule()"><span class="iconify" data-icon="hugeicons:save-01" data-width="13" style="vertical-align:middle"></span> Сақтау</button>
       <button class="btn btn-danger" onclick="fixSchedule()" style="margin-left:auto"><span class="iconify" data-icon="hugeicons:repair" data-width="13" style="vertical-align:middle"></span> ИСПРАВИТЬ (55 matches)</button>
     </div>
     <div id="schedule-list" class="schedule-list"></div>
@@ -998,6 +999,16 @@ let selectedColor = TEAM_COLORS[0];
 // SCHEDULE BUILDING
 // ═══════════════════════════════════════════════════════════════
 
+// Shuffle array (Fisher-Yates)
+function shuffleArray(array) {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 // Round-robin schedule: single (one match per pair) or double (home & away).
 function buildSchedule(teamsList) {
   matches = [];
@@ -1013,6 +1024,11 @@ function buildSchedule(teamsList) {
       matchIdCounter++;
     }
   }
+
+  // Shuffle matches for random order
+  matches = shuffleArray(matches);
+  // Fix order after shuffle
+  matches.forEach((m, idx) => { m.order = idx + 1; });
 }
 
 function addTeamToSchedule(newTeam) {
@@ -1914,6 +1930,11 @@ function resetMatchOrder() {
   renderAll();
 }
 
+function saveSchedule() {
+  syncState();
+  alert('✅ Расписание сохранено!');
+}
+
 function fixSchedule() {
   const expectedMatches = teams.length * (teams.length - 1) / 2;
   const currentMatches = matches.length;
@@ -2080,6 +2101,7 @@ function saveTeam() {
   }
   closeTeamModal();
   renderAll();
+  syncState();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -2106,6 +2128,7 @@ function confirmDelete() {
   matches = matches.filter(m=>m.team1Id!==deletingTeamId && m.team2Id!==deletingTeamId);
   closeConfirmModal();
   renderAll();
+  syncState();
 }
 
 // ═══════════════════════════════════════════════════════════════
