@@ -61,24 +61,25 @@ async function dbSave(state, action = 'update') {
 let gameState = null;
 let saveTimer = null;
 
+const STATE_FILE = process.env.STATE_FILE ||
+  path.join(path.dirname(__dirname), 'infomatrix-state.json');
+
 function scheduleSave(action = 'update') {
   if (saveTimer) return;
   saveTimer = setTimeout(async () => {
     saveTimer = null;
     if (!gameState) return;
+    // Always save to file as backup
+    try {
+      fs.writeFileSync(STATE_FILE, JSON.stringify(gameState), 'utf8');
+    } catch (e) {
+      console.error('[file] Save failed:', e.message);
+    }
+    // Also try DB
     try {
       await dbSave(gameState, action);
     } catch (e) {
       console.error('[db] Save failed:', e.message);
-      // Fallback: write to file so data isn't lost
-      try {
-        const OLD_FILE = process.env.STATE_FILE ||
-          path.join(path.dirname(__dirname), 'infomatrix-state.json');
-        fs.writeFileSync(OLD_FILE, JSON.stringify(gameState), 'utf8');
-        console.log('[file] State saved to fallback:', OLD_FILE);
-      } catch (fileErr) {
-        console.error('[file] Fallback save failed:', fileErr.message);
-      }
     }
   }, 300);
 }
