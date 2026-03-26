@@ -1815,10 +1815,7 @@ function fieldStart(fieldId) {
   if (!f || !f.matchId) return;
   const t = { startTs: Date.now(), startSecs: f.seconds };
   t.intervalId = setInterval(() => _fieldTick(fieldId), 250);
-  // Sync timer state to display every 5s while running
-  t.syncId = setInterval(() => {
-    if (f.running) syncState();
-  }, 5000);
+  // No periodic sync — display uses local timer with _startTs/_startSecs for accuracy
   fieldTimers[fieldId] = t;
   f.running = true;
   renderLive();
@@ -2179,9 +2176,21 @@ function getStateSnapshot() {
   };
 }
 
+// State hash for heartbeat (defined before syncState to avoid reference errors)
+let lastSyncedHash = '';
+function computeStateHash() {
+  const s = getStateSnapshot();
+  const fieldsKey = (s.fields || []).map(f =>
+    `${f.id}:${f.matchId}:${f.goals?.[0]||0}:${f.goals?.[1]||0}:${f.running}:${f.finished}:${f.half}`
+  ).join('|');
+  const matchesKey = (s.matches || []).map(m => `${m.id}:${m.played}`).join('|');
+  return `${fieldsKey}#${matchesKey}`;
+}
+
 function syncState() {
   if (ws && ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify({ type: 'update', token: ADMIN_TOKEN, data: getStateSnapshot() }));
+    lastSyncedHash = computeStateHash(); // Update hash to prevent heartbeat duplicate
   }
 }
 
@@ -2288,8 +2297,13 @@ window.addEventListener('hashchange', () => {
   if (VALID_TABS.includes(t) && t !== currentTab) showTab(t);
 });
 
-// Auto-sync every 5s
-setInterval(syncState, 5000);
+// Smart heartbeat: sync only if state actually changed (failsafe for lost WS messages)
+setInterval(() => {
+  const currentHash = computeStateHash();
+  if (currentHash !== lastSyncedHash) {
+    syncState();
+  }
+}, 30000); // Every 30s, only if changed
 
 </script>
 </body>

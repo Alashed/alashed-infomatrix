@@ -73,7 +73,10 @@ function scheduleSave(action = 'update') {
         const OLD_FILE = process.env.STATE_FILE ||
           path.join(path.dirname(__dirname), 'infomatrix-state.json');
         fs.writeFileSync(OLD_FILE, JSON.stringify(gameState), 'utf8');
-      } catch {}
+        console.log('[file] State saved to fallback:', OLD_FILE);
+      } catch (fileErr) {
+        console.error('[file] Fallback save failed:', fileErr.message);
+      }
     }
   }, 300);
 }

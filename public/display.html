@@ -613,12 +613,32 @@ function detectEvents(s) {
 // ─── STATE CACHE ───
 let lastState   = null;
 let lastStateTs = 0;
+let lastStateHash = '';
+
+// Quick state hash to detect changes (excludes timer fields to avoid spam)
+function stateHash(s) {
+  if (!s) return '';
+  const fieldsKey = (s.fields || []).map(f =>
+    `${f.id}:${f.matchId}:${f.goals?.[0]||0}:${f.goals?.[1]||0}:${f.running}:${f.finished}:${f.half}`
+  ).join('|');
+  const matchesKey = (s.matches || []).map(m => `${m.id}:${m.played}`).join('|');
+  return `${fieldsKey}#${matchesKey}`;
+}
 
 // ─── RENDER ───
 function render(s) {
+  const newHash = stateHash(s);
+
+  // Skip render if state hasn't actually changed (prevents flicker from heartbeat/timer syncs)
+  if (newHash === lastStateHash && lastState) {
+    lastStateTs = Date.now(); // Update timestamp but don't re-render
+    return;
+  }
+
   detectEvents(s);
   lastState   = s;
   lastStateTs = Date.now();
+  lastStateHash = newHash;
   renderFields(s, 0);
   renderStandings(s);
   const el = document.getElementById('upd-time');
