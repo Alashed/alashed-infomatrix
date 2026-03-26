@@ -9,7 +9,7 @@ echo "=== INFOMATRIX Manual Deploy ==="
 # Download from S3
 echo "1. Downloading latest build from S3..."
 cd /tmp
-wget -q "https://alashed-media.s3.eu-north-1.amazonaws.com/deploys/alashed-infomatrix-20260324-054329.tar.gz" -O infomatrix.tar.gz
+wget -q "https://alashed-media.s3.eu-north-1.amazonaws.com/deploys/alashed-infomatrix-20260326-121918.tar.gz" -O infomatrix.tar.gz
 
 # Backup old version
 echo "2. Backing up old version..."
