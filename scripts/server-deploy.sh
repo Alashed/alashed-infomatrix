@@ -13,7 +13,7 @@ fi
 
 # Defaults
 APP_DIR=${APP_DIR:-/home/ubuntu/infomatrix}
-PORT=${PORT:-7000}
+PORT=${PORT:-6666}
 ADMIN_TOKEN=${ADMIN_TOKEN:-infomatrix2026}
 DB_USER=${DB_USER:-alashed_user}
 DB_PASSWORD=${DB_PASSWORD:-alashed01}
@@ -79,7 +79,7 @@ sleep 3
 
 # 6. Health check
 echo "6. Checking health..."
-sleep 2
+sleep 3
 curl -sf http://localhost:${PORT}/health | jq . || echo "Health check failed"
 
 echo ""

@@ -4,7 +4,7 @@
 
 ```bash
 sudo tee /home/ubuntu/infomatrix/.env > /dev/null << 'EOF'
-PORT=7000
+PORT=6666
 NODE_ENV=production
 ADMIN_TOKEN=infomatrix2026
 DATABASE_URL=postgresql://alashed_user:alashed01@alashed-db.cde42ec8m1u7.eu-north-1.rds.amazonaws.com:5432/infomatrix
@@ -12,7 +12,7 @@ EOF
 
 sudo chown ubuntu:ubuntu /home/ubuntu/infomatrix/.env
 sudo systemctl restart infomatrix
-sleep 3 && curl -s http://localhost:7000/health | jq .
+sleep 3 && curl -s http://localhost:6666/health | jq .
 ```
 
 Должно вернуть:
