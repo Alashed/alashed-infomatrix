@@ -33,7 +33,7 @@ sudo -u ubuntu tee /home/ubuntu/infomatrix/.env > /dev/null << 'EOF'
 PORT=7000
 NODE_ENV=production
 ADMIN_TOKEN=infomatrix2026
-DATABASE_URL=postgresql://infomatrix:infomatrix2026@localhost:5432/infomatrix
+DATABASE_URL=postgresql://alashed_user:alashed01@alashed-db.cde42ec8m1u7.eu-north-1.rds.amazonaws.com:5432/infomatrix
 EOF
 
 # Restart service

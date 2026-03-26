@@ -26,9 +26,11 @@ fi
 export AWS_REGION=${AWS_REGION:-eu-north-1}
 ADMIN_TOKEN=${ADMIN_TOKEN:-infomatrix2026}
 DB_NAME=${DB_NAME:-infomatrix}
-DB_USER=${DB_USER:-infomatrix}
-DB_PASSWORD=${DB_PASSWORD:-infomatrix2026}
-DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@localhost:5432/${DB_NAME}"
+DB_USER=${DB_USER:-alashed_user}
+DB_PASSWORD=${DB_PASSWORD:-alashed01}
+# Use RDS instead of localhost
+RDS_HOST=${RDS_HOST:-alashed-db.cde42ec8m1u7.eu-north-1.rds.amazonaws.com}
+DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${RDS_HOST}:5432/${DB_NAME}"
 
 if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
   echo -e "${RED}❌ AWS credentials missing. Add AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY to .env${NC}"
@@ -62,11 +64,7 @@ CMD1=$(aws ssm send-command \
   --region "$AWS_REGION" \
   --comment "infomatrix-deploy-app" \
   --parameters "commands=[
-    'echo \"=== INFOMATRIX DEPLOY ===\"',
-    'sudo apt-get install -y postgresql > /dev/null 2>&1 || true',
-    'sudo systemctl enable postgresql --now || true',
-    'sudo -u postgres psql -tc \"SELECT 1 FROM pg_roles WHERE rolname=\\\"${DB_USER}\\\"\" | grep -q 1 || sudo -u postgres psql -c \"CREATE USER ${DB_USER} WITH PASSWORD \\\"${DB_PASSWORD}\\\"\"',
-    'sudo -u postgres psql -tc \"SELECT 1 FROM pg_database WHERE datname=\\\"${DB_NAME}\\\"\" | grep -q 1 || sudo -u postgres createdb -O ${DB_USER} ${DB_NAME}',
+    'echo \"=== INFOMATRIX DEPLOY (RDS) ===\"',
     'sudo -u ubuntu mkdir -p ${APP_DIR}',
     'cd /tmp && curl -sf -o infomatrix.tar.gz \"${PRESIGNED_URL}\"',
     'sudo -u ubuntu bash -c \"rm -rf ${APP_DIR}.old; mv ${APP_DIR} ${APP_DIR}.old 2>/dev/null || true; mkdir -p ${APP_DIR}\"',
