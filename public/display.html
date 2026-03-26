@@ -50,12 +50,25 @@ body::before{
 .content{display:grid;grid-template-columns:1fr 480px;overflow:hidden;}
 
 /* ─── LEFT PANEL ─── */
-.panel-fields{padding:14px;overflow:hidden;display:flex;flex-direction:column;gap:12px;}
+.panel-fields{padding:14px;overflow:auto;display:flex;flex-direction:column;gap:12px;}
 
-.fields-display{flex:1;display:grid;gap:10px;grid-template-columns:1fr;align-items:stretch;}
+.fields-display{display:grid;gap:10px;grid-template-columns:1fr;align-items:stretch;}
 .fields-display.count-2{grid-template-columns:1fr 1fr;}
 .fields-display.count-3{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;}
 .fields-display.count-4{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;}
+
+/* ─── UPCOMING MATCHES ─── */
+.upcoming-section{margin-top:16px;padding-top:16px;border-top:1px solid var(--border);}
+.upcoming-title{font-family:'Russo One',sans-serif;font-size:11px;font-weight:700;color:var(--accent);letter-spacing:2px;margin-bottom:10px;}
+.upcoming-list{display:flex;flex-direction:column;gap:6px;}
+.upcoming-match{
+  background:rgba(0,137,123,0.03);
+  border:1px solid var(--border);border-radius:8px;
+  padding:8px 12px;display:flex;align-items:center;gap:10px;font-size:11px;
+}
+.upcoming-num{font-family:'Russo One',sans-serif;font-size:9px;color:var(--muted);min-width:28px;}
+.upcoming-teams{flex:1;display:flex;align-items:center;gap:8px;}
+.upcoming-vs{color:var(--muted);font-size:9px;padding:0 4px;}
 
 /* ─── FIELD CARD ─── */
 .field-box{
@@ -389,6 +402,12 @@ body::before{
   <div class="content">
     <div class="panel-fields">
       <div id="fields-display" class="fields-display count-1"></div>
+
+      <!-- Upcoming Matches List -->
+      <div class="upcoming-section">
+        <div class="upcoming-title">Келесі матчтар</div>
+        <div id="upcoming-list" class="upcoming-list"></div>
+      </div>
     </div>
     <div class="panel-stand">
       <div class="stand-title">
@@ -553,12 +572,11 @@ const prevFields = {}; // fieldId → { goals, running, finished, half }
 function detectEvents(s) {
   if (!s || !s.fields) return;
   s.fields.forEach(f => {
-    if (!f.matchId) { prevFields[f.id] = null; return; }
+    if (!f.team1Id || !f.team2Id) { prevFields[f.id] = null; return; }
 
     const prev = prevFields[f.id];
-    const m  = s.matches?.find(x => x.id === f.matchId);
-    const t1 = m ? s.teams?.find(t => t.id === m.team1Id) : null;
-    const t2 = m ? s.teams?.find(t => t.id === m.team2Id) : null;
+    const t1 = s.teams?.find(t => t.id === f.team1Id);
+    const t2 = s.teams?.find(t => t.id === f.team2Id);
 
     if (prev) {
       const g0 = f.goals?.[0] ?? 0;
@@ -619,7 +637,7 @@ let lastStateHash = '';
 function stateHash(s) {
   if (!s) return '';
   const fieldsKey = (s.fields || []).map(f =>
-    `${f.id}:${f.matchId}:${f.goals?.[0]||0}:${f.goals?.[1]||0}:${f.running}:${f.finished}:${f.half}`
+    `${f.id}:${f.team1Id}:${f.team2Id}:${f.goals?.[0]||0}:${f.goals?.[1]||0}:${f.running}:${f.finished}:${f.half}`
   ).join('|');
   const matchesKey = (s.matches || []).map(m => `${m.id}:${m.played}`).join('|');
   return `${fieldsKey}#${matchesKey}`;
@@ -640,6 +658,7 @@ function render(s) {
   lastStateTs = Date.now();
   lastStateHash = newHash;
   renderFields(s, 0);
+  renderUpcomingMatches(s);
   renderStandings(s);
   const el = document.getElementById('upd-time');
   if (el) el.textContent = new Date().toLocaleTimeString('ru');
@@ -683,15 +702,14 @@ function renderFields(s, elapsedSec) {
   }
 
   container.innerHTML = allFields.map(f => {
-    if (!f.matchId) {
+    if (!f.team1Id || !f.team2Id) {
       return '<div class="field-box idle">'
         + '<div class="field-num-badge">АЛАҢ ' + f.id + '</div>'
         + '<div class="no-match-box">КҮТІЛУДЕ</div>'
         + '</div>';
     }
-    const m  = s.matches.find(x => x.id === f.matchId);
-    const t1 = m ? s.teams.find(t => t.id === m.team1Id) : null;
-    const t2 = m ? s.teams.find(t => t.id === m.team2Id) : null;
+    const t1 = s.teams.find(t => t.id === f.team1Id);
+    const t2 = s.teams.find(t => t.id === f.team2Id);
 
     const secs = f.running && !f.finished
       ? Math.max(0, (f.seconds||0) - (elapsedSec||0))
@@ -726,6 +744,38 @@ function renderFields(s, elapsedSec) {
       </div>
       ${(f.halfGoals||[]).length ? `<div style="font-size:clamp(8px,1vw,11px);color:var(--muted);margin:2px 0">${f.halfGoals.map((hg,i) => `${i+1}T: ${hg.goals1}:${hg.goals2}`).join(' · ')}</div>` : ''}
       <div class="timer-disp ${timerCls}" id="lt-${f.id}">${timerStr}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderUpcomingMatches(s) {
+  const container = document.getElementById('upcoming-list');
+  if (!container) return;
+
+  // Get unplayed matches sorted by order
+  const upcoming = (s.matches || [])
+    .filter(m => !m.played)
+    .sort((a, b) => a.order - b.order)
+    .slice(0, 5); // Show top 5 upcoming
+
+  if (upcoming.length === 0) {
+    container.innerHTML = '<div style="font-size:10px;color:var(--muted);text-align:center;padding:10px">Барлық матчтар аяқталды</div>';
+    return;
+  }
+
+  container.innerHTML = upcoming.map(m => {
+    const t1 = s.teams.find(t => t.id === m.team1Id);
+    const t2 = s.teams.find(t => t.id === m.team2Id);
+    if (!t1 || !t2) return '';
+
+    return `
+    <div class="upcoming-match">
+      <span class="upcoming-num">#${m.id}</span>
+      <div class="upcoming-teams">
+        <span style="color:${esc(t1.color)}">${esc(t1.name)}</span>
+        <span class="upcoming-vs">vs</span>
+        <span style="color:${esc(t2.color)}">${esc(t2.name)}</span>
+      </div>
     </div>`;
   }).join('');
 }

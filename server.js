@@ -179,6 +179,41 @@ wss.on('connection', (ws, req) => {
           ws.send(JSON.stringify({ type: 'error', code: 'UNAUTHORIZED' }));
           return;
         }
+
+        // Validate update: reject if wrong number of matches or wrong config (protection against old admin state)
+        if (msg.data && msg.data.teams && msg.data.matches) {
+          const expectedMatches = msg.data.teams.length * (msg.data.teams.length - 1) / 2;
+          const configWrong = msg.data.config && (
+            msg.data.config.gamePointsMax !== 40 ||
+            msg.data.config.numFields !== 2 ||
+            msg.data.config.scheduleType !== undefined
+          );
+
+          if (msg.data.matches.length !== expectedMatches || configWrong) {
+            const reasons = [];
+            if (msg.data.matches.length !== expectedMatches) {
+              reasons.push(`matches: ${msg.data.matches.length} (expected ${expectedMatches})`);
+            }
+            if (msg.data.config) {
+              if (msg.data.config.gamePointsMax !== 40) {
+                reasons.push(`gamePointsMax: ${msg.data.config.gamePointsMax} (expected 40)`);
+              }
+              if (msg.data.config.numFields !== 2) {
+                reasons.push(`numFields: ${msg.data.config.numFields} (expected 2)`);
+              }
+              if (msg.data.config.scheduleType !== undefined) {
+                reasons.push(`scheduleType should not exist`);
+              }
+            }
+            console.log(`[ws] Rejecting update from ${ip}: ${reasons.join(', ')}`);
+            // Send correct state back to admin
+            if (gameState) {
+              ws.send(JSON.stringify({ type: 'state', data: gameState }));
+            }
+            return;
+          }
+        }
+
         gameState = msg.data;
         scheduleSave('update');
         // Broadcast to ALL other clients (displays + other admin tabs)
@@ -216,6 +251,63 @@ async function main() {
       if (gameState) console.log('[db] State loaded from PostgreSQL');
     } catch (e) {
       console.error('[db] Load failed:', e.message);
+    }
+  }
+
+  // 2.5. Migrate state if needed (fix old double round-robin + gamePointsMax)
+  if (gameState && gameState.teams && gameState.matches) {
+    let needsMigration = false;
+    const teams = gameState.teams;
+    const expectedMatches = teams.length * (teams.length - 1) / 2;  // Single round-robin
+
+    // Fix 1: Wrong number of matches (double round-robin → single)
+    if (gameState.matches.length !== expectedMatches) {
+      console.log(`[migrate] Fixing schedule: ${gameState.matches.length} → ${expectedMatches} matches`);
+      const newMatches = [];
+      let matchId = 1;
+      for (let i = 0; i < teams.length; i++) {
+        for (let j = i + 1; j < teams.length; j++) {
+          newMatches.push({
+            id: matchId,
+            order: matchId,
+            team1Id: teams[i].id,
+            team2Id: teams[j].id,
+            goals1: null,
+            goals2: null,
+            halfScores: [],
+            played: false
+          });
+          matchId++;
+        }
+      }
+      gameState.matches = newMatches;
+      needsMigration = true;
+    }
+
+    // Fix 2: Wrong gamePointsMax
+    if (gameState.config && gameState.config.gamePointsMax !== 40) {
+      console.log(`[migrate] Fixing gamePointsMax: ${gameState.config.gamePointsMax} → 40`);
+      gameState.config.gamePointsMax = 40;
+      needsMigration = true;
+    }
+
+    // Fix 3: Wrong numFields
+    if (gameState.config && gameState.config.numFields !== 2) {
+      console.log(`[migrate] Fixing numFields: ${gameState.config.numFields} → 2`);
+      gameState.config.numFields = 2;
+      needsMigration = true;
+    }
+
+    // Fix 4: Remove scheduleType
+    if (gameState.config && gameState.config.scheduleType) {
+      console.log(`[migrate] Removing scheduleType`);
+      delete gameState.config.scheduleType;
+      needsMigration = true;
+    }
+
+    if (needsMigration && dbOk) {
+      await dbSave(gameState, 'auto_migration');
+      console.log('[migrate] State migrated and saved');
     }
   }
 
